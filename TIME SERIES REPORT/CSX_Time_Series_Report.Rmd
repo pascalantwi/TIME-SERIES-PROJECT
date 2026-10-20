@@ -1,0 +1,562 @@
+---
+title: "Modeling the Daily Returns of CSX Corporation Stock with ARIMA Models"
+subtitle: "STA6938 Time Series --- Final Project Report"
+author: "Student Name"
+date: "December 2026"
+output:
+  bookdown::pdf_document2:
+    toc: false
+    number_sections: true
+    fig_caption: true
+    keep_tex: false
+    latex_engine: pdflatex
+fontsize: 11pt
+geometry: margin=1in
+linkcolor: blue
+urlcolor: blue
+header-includes:
+  - \usepackage{lmodern}
+  - \usepackage{microtype}
+  - \usepackage{float}
+  - \usepackage{booktabs}
+  - \usepackage{amsmath}
+  - \usepackage{caption}
+  - \captionsetup{font=small, labelfont=bf, labelsep=period}
+  - \captionsetup[table]{position=above, skip=4pt}
+  - \usepackage{fancyhdr}
+  - \pagestyle{fancy}
+  - \fancyhf{}
+  - \fancyhead[L]{\small STA6938 Time Series}
+  - \fancyhead[R]{\small CSX Daily Returns}
+  - \fancyfoot[C]{\small Page \thepage}
+  - \renewcommand{\headrulewidth}{0.4pt}
+  - \let\oldShaded\Shaded
+  - \let\endoldShaded\endShaded
+  - \renewenvironment{Shaded}{\footnotesize\oldShaded}{\endoldShaded}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE, message = FALSE, warning = FALSE,
+  fig.align = "center", fig.pos = "!htb", out.width = "100%",
+  fig.width = 6.5, dev = c("pdf", "png"), dpi = 300, fig.path = "figures/"
+)
+suppressPackageStartupMessages({
+  library(forecast); library(tseries); library(urca); library(nortest)
+  library(ggplot2); library(patchwork); library(scales); library(kableExtra)
+})
+
+# ---- Formatting helpers --------------------------------------------------
+f  <- function(x, d = 2) formatC(x, format = "f", digits = d, big.mark = ",")
+fp <- function(p) ifelse(p < 0.001, "< 0.001", formatC(p, format = "f", digits = 3))
+fd <- function(d) paste0(format(d, "%B "), as.integer(format(d, "%d")), format(d, ", %Y"))
+
+ktab <- function(df, caption, align = NULL, ...) {
+  kbl(df, booktabs = TRUE, caption = caption, align = align, row.names = FALSE,
+      escape = FALSE, linesep = "", ...) |>
+    kable_styling(latex_options = "HOLD_position", font_size = 9.5)
+}
+tnote <- function(k, text) {
+  footnote(k, general = text, general_title = "Note:", footnote_as_chunk = TRUE,
+           threeparttable = TRUE, escape = FALSE)
+}
+
+# ---- Chart style ---------------------------------------------------------
+ink <- "#0b0b0b"; ink2 <- "#52514e"; grid_col <- "#e7e6e2"; shade <- "#eceae4"
+c_blue <- "#2a78d6"; c_orange <- "#eb6834"; c_red <- "#e34948"
+
+theme_report <- function(base = 9.5) {
+  theme_minimal(base_size = base) +
+    theme(
+      panel.grid.minor = element_blank(),
+      panel.grid.major = element_line(colour = grid_col, linewidth = 0.3),
+      axis.title = element_text(colour = ink2, size = rel(0.9)),
+      axis.text = element_text(colour = ink2),
+      plot.title = element_text(face = "bold", colour = ink, size = rel(1)),
+      plot.title.position = "plot",
+      legend.position = "top", legend.justification = "left",
+      legend.title = element_blank(), legend.text = element_text(colour = ink2),
+      legend.margin = margin(0, 0, 0, 0),
+      plot.margin = margin(4, 8, 4, 4)
+    )
+}
+
+# NBER recession dates covered by the sample
+rec <- data.frame(start = as.Date(c("2001-03-01", "2007-12-01", "2020-02-01")),
+                  end   = as.Date(c("2001-11-30", "2009-06-30", "2020-04-30")))
+rec_layer <- geom_rect(data = rec, aes(xmin = start, xmax = end, ymin = -Inf, ymax = Inf),
+                       inherit.aes = FALSE, fill = shade)
+
+# Sample ACF / PACF with the +-1.96/sqrt(n) bounds; optional highlighted lags
+acf_plot <- function(x, title, lag.max = 36, partial = FALSE, highlight = NULL, thin = FALSE) {
+  a <- if (partial) pacf(x, lag.max = lag.max, plot = FALSE) else acf(x, lag.max = lag.max, plot = FALSE)
+  df <- data.frame(lag = as.numeric(a$lag), r = as.numeric(a$acf))
+  df <- df[df$lag > 0, ]
+  df$hl <- df$lag %in% highlight
+  b <- 1.96 / sqrt(length(x))
+  ggplot(df, aes(lag, r)) +
+    geom_hline(yintercept = 0, colour = ink2, linewidth = 0.3) +
+    geom_hline(yintercept = c(-b, b), colour = c_orange, linetype = "dashed", linewidth = 0.4) +
+    geom_segment(aes(xend = lag, yend = 0, colour = hl), linewidth = if (thin) 0.25 else 0.6, show.legend = FALSE) +
+    geom_point(aes(colour = hl), size = if (thin) 0.5 else 0.8, show.legend = FALSE) +
+    scale_colour_manual(values = c(`FALSE` = c_blue, `TRUE` = c_red)) +
+    labs(title = title, x = "Lag (trading days)", y = if (partial) "PACF" else "ACF") +
+    theme_report()
+}
+
+qq_plot <- function(x, title) {
+  ggplot(data.frame(x = x), aes(sample = x)) +
+    stat_qq(colour = c_blue, size = 0.5) + stat_qq_line(colour = c_orange, linewidth = 0.6) +
+    labs(title = title, x = "Normal quantiles", y = "Sample quantiles") + theme_report()
+}
+
+lb_p <- function(x, lags = c(6, 12, 18, 24), fitdf = 0)
+  sapply(lags, function(h) Box.test(x, lag = h, type = "Ljung-Box", fitdf = fitdf)$p.value)
+lb_q <- function(x, lags = c(6, 12, 18, 24), fitdf = 0)
+  sapply(lags, function(h) Box.test(x, lag = h, type = "Ljung-Box", fitdf = fitdf)$statistic)
+skew <- function(x) mean((x - mean(x))^3) / sd(x)^3
+exkurt <- function(x) mean((x - mean(x))^4) / sd(x)^4 - 3
+```
+
+```{r data}
+csx <- read.csv("CSX_daily.csv")
+csx$Date <- as.Date(csx$Date)
+csx <- csx[order(csx$Date), ]
+
+price <- csx$Adj.Close
+lp    <- log(price)                 # X_t = log price
+r     <- 100 * diff(lp)             # daily log return in percent, 100 * (1 - B) X_t
+dates <- csx$Date
+rdates <- dates[-1]
+n_p <- length(price); n_r <- length(r)
+tt <- seq_len(n_p)
+trend_fit <- lm(lp ~ tt)            # regression approach: linear trend in the log price
+detr <- resid(trend_fit)
+```
+
+```{r unitroot}
+# Augmented Dickey-Fuller tests at lags 0, 1, 2 (single mean and trend), as in class
+adf_row <- function(x, type, lag) {
+  u <- ur.df(x, type = type, lags = lag)
+  c(tau = u@teststat[1], cv1 = u@cval[1, 1], cv5 = u@cval[1, 2])
+}
+adf_tab <- rbind(
+  cbind(series = 1, type = 1, lag = 0:2, t(sapply(0:2, function(L) adf_row(lp, "drift", L)))),
+  cbind(series = 1, type = 2, lag = 0:2, t(sapply(0:2, function(L) adf_row(lp, "trend", L)))),
+  cbind(series = 2, type = 1, lag = 0:2, t(sapply(0:2, function(L) adf_row(r, "drift", L))))
+)
+adf_tab <- as.data.frame(adf_tab)
+```
+
+```{r models}
+# Candidate ARMA(p, q) models for the returns, p, q = 0, 1, 2, estimated by maximum likelihood
+grid <- expand.grid(p = 0:2, q = 0:2)
+cand <- do.call(rbind, lapply(seq_len(nrow(grid)), function(i) {
+  fit <- Arima(r, order = c(grid$p[i], 0, grid$q[i]), method = "ML")
+  data.frame(p = grid$p[i], q = grid$q[i], k = length(coef(fit)),
+             logLik = as.numeric(logLik(fit)), AIC = AIC(fit), SBC = BIC(fit),
+             LB12 = Box.test(resid(fit), 12, "Ljung-Box", fitdf = grid$p[i] + grid$q[i])$p.value)
+}))
+cand <- cand[order(cand$SBC), ]
+
+# Initial model: MA(1) for the returns = ARIMA(0,1,1) with drift for the log price
+ma1 <- Arima(r, order = c(0, 0, 1), method = "ML")
+ma1_se <- sqrt(diag(ma1$var.coef))
+ma1_res <- as.numeric(resid(ma1))
+
+# Refined model: MA terms at lags 1 and 6 only (theta_2 = ... = theta_5 = 0)
+fix6 <- c(NA, 0, 0, 0, 0, NA, NA)
+fin <- Arima(r, order = c(0, 0, 6), fixed = fix6, transform.pars = FALSE, method = "ML")
+fin_se <- sqrt(diag(fin$var.coef))
+fin_res <- as.numeric(resid(fin))
+ma6_full <- Arima(r, order = c(0, 0, 6), method = "ML")
+roots <- Mod(polyroot(c(1, coef(fin)[1:6])))
+```
+
+```{r backtest}
+# Pseudo out-of-sample check: estimate on all but the last 250 returns,
+# then produce one-step-ahead forecasts over the final 250 trading days.
+H <- 250; tr <- 1:(n_r - H); te <- (n_r - H + 1):n_r; rt <- r[tr]; y <- r[te]
+
+one_step_arima <- function(fit) fitted(Arima(r, model = fit))[te]
+bt_ma1 <- Arima(rt, order = c(0, 0, 1), method = "ML")
+bt_fin <- Arima(rt, order = c(0, 0, 6), fixed = fix6, transform.pars = FALSE, method = "ML")
+
+one_step_ets <- function(type) {
+  fit <- ets(lp[1:(n_r - H + 1)], model = type, damped = FALSE)
+  lpf <- fitted(ets(lp, model = fit, use.initial.values = TRUE))
+  list(f = 100 * (lpf[te + 1] - lp[te]), se = 100 * sqrt(fit$sigma2), par = fit$par)
+}
+ses_bt <- one_step_ets("ANN"); holt_bt <- one_step_ets("AAN")
+
+score <- function(fc, se) c(RMSE = sqrt(mean((y - fc)^2)), MAE = mean(abs(y - fc)),
+                            Coverage = 100 * mean(abs(y - fc) <= 1.96 * se), Width = 2 * 1.96 * se)
+bt <- rbind(
+  "Random walk with drift" = score(rep(mean(rt), H), sd(rt)),
+  "Simple exponential smoothing" = score(ses_bt$f, ses_bt$se),
+  "Holt's linear trend method" = score(holt_bt$f, holt_bt$se),
+  "ARIMA(0,1,1) with drift" = score(one_step_arima(bt_ma1), sqrt(bt_ma1$sigma2)),
+  "Final model: subset ARIMA(0,1,6)" = score(one_step_arima(bt_fin), sqrt(bt_fin$sigma2))
+)
+```
+
+```{r forecast}
+hH <- 20
+fin_lp <- Arima(lp, order = c(0, 1, 6), include.drift = TRUE, fixed = fix6,
+                transform.pars = FALSE, method = "ML")
+fa <- forecast(fin_lp, h = hH, level = c(80, 95))
+P_T <- price[n_p]
+fdates <- seq(dates[n_p] + 1, by = "day", length.out = 40)
+fdates <- fdates[!weekdays(fdates) %in% c("Saturday", "Sunday")][1:hH]
+fc_df <- data.frame(Date = fdates, med = exp(as.numeric(fa$mean)),
+                    lo80 = exp(as.numeric(fa$lower[, 1])), hi80 = exp(as.numeric(fa$upper[, 1])),
+                    lo95 = exp(as.numeric(fa$lower[, 2])), hi95 = exp(as.numeric(fa$upper[, 2])))
+```
+
+```{r numbers}
+V <- list(
+  start = fd(dates[1]), end = fd(dates[n_p]),
+  p0 = price[1], pmax = max(price), pmax_d = format(dates[which.max(price)], "%B %Y"),
+  growth = P_T / price[1],
+  r_mean = mean(r), r_sd = sd(r), r_ann = 252 * mean(r), vol_ann = sqrt(252) * sd(r),
+  r_min = min(r), r_min_d = fd(rdates[which.min(r)]),
+  r_max = max(r), r_max_d = fd(rdates[which.max(r)]),
+  r_skew = skew(r), r_kurt = exkurt(r),
+  acf1 = acf(r, 1, plot = FALSE)$acf[2],
+  acf6 = acf(ma1_res, 6, plot = FALSE)$acf[7],
+  trend_slope = 252 * coef(trend_fit)[2] * 100
+)
+lb_r <- lb_p(r); lb_r2 <- lb_p(r^2)
+theta <- -coef(ma1)["ma1"]; theta_se <- ma1_se["ma1"]
+mu_ma <- coef(ma1)["intercept"]; mu_se <- ma1_se["intercept"]
+th1 <- -coef(fin)["ma1"]; th6 <- -coef(fin)["ma6"]; mu_f <- coef(fin)["intercept"]
+z_fin <- fin_res / sqrt(fin$sigma2)
+tail3 <- 100 * mean(abs(z_fin) > 3)
+yr_out <- 100 * tapply(abs(z_fin) > 1.96, format(rdates, "%Y"), mean)
+adf_lp_mean <- adf_tab[adf_tab$series == 1 & adf_tab$type == 1, ]
+adf_lp_tr   <- adf_tab[adf_tab$series == 1 & adf_tab$type == 2, ]
+adf_r_mean  <- adf_tab[adf_tab$series == 2, ]
+```
+
+# Topic and Motivation
+
+This project studies the daily stock price of **CSX Corporation** (NASDAQ: CSX), one of the largest freight railroads in the eastern United States. Railroads carry coal, chemicals, automobiles, intermodal containers and farm products, so their business moves closely with industrial activity and trade. That makes CSX an interesting series: it is a long-lived, capital-intensive company whose stock has lived through the 2001 recession, the 2008--2009 financial crisis and the COVID-19 shock of 2020. I am interested in whether the tools from this course --- stationarity checks, differencing, ACF/PACF identification, ARIMA modeling and exponential smoothing --- can find predictable structure in a stock price, and in how well they forecast it.
+
+# Description of the Series
+
+The data set (`CSX_daily.csv`) contains `r f(n_p, 0)` consecutive trading days from `r V$start` to `r V$end`, with the daily open, high, low, close, adjusted close and volume. There are no missing values or duplicated dates; gaps in the calendar are weekends and market holidays. The analysis uses the **adjusted closing price** $P_t$, which corrects for stock splits (the 3-for-1 splits of 2011 and 2021) and dividends, so that changes in $P_t$ are the actual return to an investor.
+
+Figure \@ref(fig:fig-price)(a) shows the series. The price grew from \$`r f(V$p0)` to \$`r f(P_T)` (about `r f(V$growth, 0)` times), peaking at \$`r f(V$pmax)` in `r V$pmax_d`. Large declines line up with the shaded recessions. Table \@ref(tab:tab-desc) summarizes the price and the daily log return $r_t = 100\,\nabla X_t = 100(\log P_t-\log P_{t-1})$, measured in percent.
+
+```{r tab-desc}
+desc <- data.frame(
+  Statistic = c("Observations", "Mean", "Standard deviation", "Minimum", "Median", "Maximum",
+                "Skewness", "Excess kurtosis"),
+  Price = c(f(n_p, 0), f(mean(price)), f(sd(price)), f(min(price)), f(median(price)), f(max(price)),
+            f(skew(price)), f(exkurt(price))),
+  Return = c(f(n_r, 0), f(mean(r), 3), f(sd(r), 3), f(min(r)), f(median(r), 3), f(max(r)),
+             f(skew(r)), f(exkurt(r)))
+)
+names(desc) <- c("Statistic", "Adjusted price $P_t$ (USD)", "Daily log return $r_t$ (\\%)")
+ktab(desc, "Descriptive statistics of the CSX adjusted closing price and the daily log return.",
+     align = "lrr") |>
+  tnote("Excess kurtosis is zero for a normal distribution.")
+```
+
+The average daily return is `r f(V$r_mean, 3)`% (about `r f(V$r_ann, 1)`% per year) with a standard deviation of `r f(V$r_sd, 2)`%. The return distribution is nearly symmetric (skewness `r f(V$r_skew)`) but has very heavy tails (excess kurtosis `r f(V$r_kurt, 1)`). The largest one-day loss was `r f(V$r_min, 1)`% on `r V$r_min_d`, and the largest gain was `r f(V$r_max, 1)`% on `r V$r_max_d`.
+
+# Stationarity of the Series
+
+**Transformation.** The price grows roughly exponentially, and its swings get larger as the price level rises. Following Note 4, I applied the log transformation $X_t=\log P_t$ to stabilize the variability. On the log scale (Figure \@ref(fig:fig-price)(b)) the trend is close to linear and fluctuations are of similar size throughout the sample.
+
+**Plot and ACF.** The log price drifts upward with long swings, so its mean depends on $t$. Its sample ACF (Figure \@ref(fig:fig-price)(d)) starts near 1 and decays extremely slowly, the typical pattern of a non-stationary series. The data are daily stock prices, so there is no seasonal component to remove.
+
+```{r fig-price, fig.height=5.6, fig.cap="CSX adjusted closing price, January 2000 to October 2026. (a) Price in US dollars, with the latest value labeled. (b) Log price $X_t=\\log P_t$ with the fitted linear trend (orange). (c) Deviation of $X_t$ from the linear trend. (d) Sample ACF of $X_t$; dashed lines are the $\\pm1.96/\\sqrt{n}$ bounds. Grey bands mark NBER recessions."}
+pdat <- data.frame(Date = dates, price = price, lp = lp, trend = fitted(trend_fit), detr = detr)
+last_lab <- data.frame(Date = dates[n_p], price = P_T, lab = paste0("$", f(P_T)))
+g1 <- ggplot(pdat, aes(Date, price)) + rec_layer +
+  geom_line(colour = c_blue, linewidth = 0.35) +
+  geom_point(data = last_lab, colour = c_blue, size = 1.6) +
+  geom_text(data = last_lab, aes(label = lab), hjust = 1.15, vjust = -0.6, size = 3, colour = ink) +
+  scale_y_continuous(labels = label_dollar()) +
+  scale_x_date(date_breaks = "2 years", date_labels = "%Y") +
+  labs(title = "(a) Adjusted closing price", x = NULL, y = "USD") + theme_report()
+g2 <- ggplot(pdat, aes(Date)) + rec_layer +
+  geom_line(aes(y = lp), colour = c_blue, linewidth = 0.35) +
+  geom_line(aes(y = trend), colour = c_orange, linewidth = 0.5) +
+  scale_x_date(date_breaks = "6 years", date_labels = "%Y") +
+  labs(title = expression(bold("(b) Log price ") * bolditalic(X[t]) * bold(" and trend")),
+       x = NULL, y = "log USD") + theme_report()
+g3 <- ggplot(pdat, aes(Date, detr)) + rec_layer +
+  geom_hline(yintercept = 0, colour = ink2, linewidth = 0.3) +
+  geom_line(colour = c_blue, linewidth = 0.35) +
+  scale_x_date(date_breaks = "6 years", date_labels = "%Y") +
+  labs(title = "(c) Deviation from trend", x = NULL, y = "log USD") + theme_report()
+g4 <- acf_plot(lp, expression(bold("(d) Sample ACF of ") * bolditalic(X[t])), lag.max = 30) +
+  coord_cartesian(ylim = c(0, 1))
+g1 / (g2 | g3 | g4) + plot_layout(heights = c(1.1, 1))
+```
+
+**Augmented Dickey--Fuller test.** Table \@ref(tab:tab-adf) reports the ADF test ($H_0$: unit root, non-stationary; $H_1$: stationary) at lags 0, 1 and 2. For the log price, the single-mean version cannot reject a unit root at any lag ($\tau$ between `r f(min(adf_lp_mean$tau))` and `r f(max(adf_lp_mean$tau))`, against a 5% critical value of `r f(adf_lp_mean$cv5[1])`). The trend version gives $\tau$ around `r f(mean(adf_lp_tr$tau))`, which is just beyond its 5% critical value (`r f(adf_lp_tr$cv5[1])`); at lags 1 and 2 it is not significant at 1%. This means the evidence is mixed: the series is clearly not stationary around a constant mean, but the test cannot rule out stationarity around a straight-line trend.
+
+**Estimation versus differencing.** Note 4 gives two ways to handle a trend: *estimate* it with regression, or *remove* it by differencing. Figure \@ref(fig:fig-price)(c) shows the log price after removing the fitted linear trend. The deviations are not a stationary series around zero: the stock sits above or below its trend line for many years at a time (e.g., below it for most of 2009--2013). A straight-line trend therefore does not describe the data well, and forecasting from it would assume the price must return to that line. Differencing is the better choice, and Section 5 adds a check: if a trend-stationary series were differenced, the resulting MA coefficient would be close to 1 (a non-invertible model). The fitted coefficient is about `r f(theta, 2)`, far from 1, which supports differencing.
+
+**The differenced series.** The daily return $r_t = 100\,\nabla X_t$ (Figure \@ref(fig:fig-returns)(a)) fluctuates around a constant mean near zero with no trend, and the ADF test rejects a unit root decisively ($\tau$ below `r f(max(adf_r_mean$tau))` at every lag). **One difference is enough**, so the log price is modeled as an ARIMA$(p,1,q)$ process, equivalently an ARMA$(p,q)$ for $r_t$.
+
+```{r tab-adf}
+adt <- data.frame(
+  Series = c("$X_t=\\log P_t$", rep("", 5), "$r_t=100\\nabla X_t$", "", ""),
+  Type = rep(c("Single mean", "Trend", "Single mean"), each = 3),
+  Lags = adf_tab$lag, Tau = f(adf_tab$tau), CV1 = f(adf_tab$cv1), CV5 = f(adf_tab$cv5),
+  Decision = ifelse(adf_tab$tau < adf_tab$cv1, "Reject at 1\\%",
+              ifelse(adf_tab$tau < adf_tab$cv5, "Reject at 5\\%", "Fail to reject"))
+)
+names(adt) <- c("Series", "Type", "Lags", "$\\tau$", "1\\%", "5\\%", "Decision")
+ktab(adt, "Augmented Dickey--Fuller unit-root tests for the log price and the daily log return.",
+     align = "llcrrrl") |>
+  add_header_above(c(" " = 4, "Critical values" = 2, " " = 1)) |>
+  row_spec(6, hline_after = TRUE) |>
+  tnote("$H_0$: the series has a unit root (non-stationary). Reject $H_0$ when $\\\\tau$ is below the critical value.")
+```
+
+```{r fig-returns, fig.height=4.6, fig.cap="Daily log returns $r_t$ (\\%). (a) The return series, with the largest daily gain and loss labeled. (b) Histogram with the fitted normal density. (c) Normal Q--Q plot."}
+rdat <- data.frame(Date = rdates, r = r)
+ext <- rdat[c(which.min(r), which.max(r)), ]
+ext$lab <- paste0(format(ext$Date, "%b %Y"), ": ", ifelse(ext$r > 0, "+", ""), f(ext$r, 1), "%")
+h1 <- ggplot(rdat, aes(Date, r)) + rec_layer +
+  geom_hline(yintercept = 0, colour = ink2, linewidth = 0.3) +
+  geom_line(colour = c_blue, linewidth = 0.18) +
+  geom_point(data = ext, colour = ink, size = 1.3) +
+  geom_text(data = ext, aes(label = lab), hjust = -0.08, size = 2.8, colour = ink) +
+  scale_x_date(date_breaks = "2 years", date_labels = "%Y") +
+  labs(title = expression(bold("(a) Daily log return ") * bolditalic(r[t])), x = NULL, y = "Percent") +
+  theme_report()
+h2 <- ggplot(rdat, aes(r)) +
+  geom_histogram(aes(y = after_stat(density)), binwidth = 0.25, fill = c_blue, colour = "white", linewidth = 0.1) +
+  stat_function(fun = dnorm, args = list(mean = mean(r), sd = sd(r)), colour = c_orange, linewidth = 0.6) +
+  annotate("text", x = 3.2, y = 0.24, label = "Normal density", colour = ink2, size = 2.8, hjust = 0) +
+  coord_cartesian(xlim = c(-8, 8)) +
+  labs(title = "(b) Distribution of returns", x = "Daily return (%)", y = "Density") + theme_report()
+h1 / (h2 | qq_plot(r, "(c) Normal Q-Q plot")) + plot_layout(heights = c(1, 1))
+```
+
+**Is the return series white noise?** If $r_t$ were white noise, no model would be needed beyond its mean and variance (Note 6). Table \@ref(tab:tab-wn) applies the Ljung--Box test at lags 6, 12, 18 and 24. It rejects $H_0:\rho(1)=\cdots=\rho(h)=0$ at every lag, so the returns contain some linear dependence that an ARMA model can describe. The dependence is small: the lag-1 sample autocorrelation is only `r f(V$acf1, 3)`. The same test on the *squared* returns gives very large statistics, meaning that large moves (of either sign) tend to cluster in time. This is visible in Figure \@ref(fig:fig-returns)(a) around 2001--2002, 2008--2009 and 2020, and it matters later for the residual checks.
+
+```{r tab-wn}
+wn <- data.frame(Lag = c(6, 12, 18, 24),
+                 Q1 = f(lb_q(r)), P1 = fp(lb_r), Q2 = f(lb_q(r^2), 1), P2 = fp(lb_r2))
+names(wn) <- c("Lag $h$", "$Q$", "$p$-value", "$Q$", "$p$-value")
+ktab(wn, "Ljung--Box white-noise tests for the daily returns and the squared daily returns.",
+     align = "crrrr") |>
+  add_header_above(c(" " = 1, "Returns $r_t$" = 2, "Squared returns $r_t^2$" = 2), escape = FALSE) |>
+  tnote("$H_0$: $\\\\rho(1)=\\\\cdots=\\\\rho(h)=0$. Under $H_0$, $Q\\\\sim\\\\chi^2(h)$ asymptotically.")
+```
+
+# Model Selection and Model-Building Procedure
+
+**Identification.** Figure \@ref(fig:fig-acf) shows the sample ACF and PACF of $r_t$. Both have one clearly significant spike at lag 1 (about `r f(V$acf1, 3)`), and the remaining values are small and mostly inside the $\pm1.96/\sqrt n$ bounds. A cut-off in the ACF after lag 1 suggests an **MA(1)** (Note 7); a cut-off in the PACF after lag 1 suggests an **AR(1)** (Note 8). When $|\rho(1)|$ is this small the two are almost indistinguishable, so both were considered along with small ARMA models (Note 9).
+
+```{r fig-acf, fig.height=2.5, fig.cap="Identification plots for the daily returns. (a) Sample ACF and (b) sample PACF of $r_t$. (c) Sample ACF of $r_t^2$. Dashed lines are the approximate 95\\% bounds $\\pm1.96/\\sqrt{n}$."}
+(acf_plot(r, "(a) ACF of returns") + coord_cartesian(ylim = c(-0.08, 0.08))) |
+  (acf_plot(r, "(b) PACF of returns", partial = TRUE) + coord_cartesian(ylim = c(-0.08, 0.08))) |
+  acf_plot(r^2, "(c) ACF of squared returns")
+```
+
+**Estimation and selection.** All ARMA$(p,q)$ models with $p,q\in\{0,1,2\}$ were estimated by maximum likelihood and compared with AIC and SBC (Table \@ref(tab:tab-cand)). SBC penalizes extra parameters more heavily, which matters with `r f(n_r, 0)` observations. **The MA(1) model has the smallest SBC** and is essentially tied with the AR(1); every larger model adds parameters without enough improvement in fit. The MA(1) also matches the ACF cut-off most directly, so it is the initial model. In terms of the log price it is an **ARIMA(0,1,1) with drift**:
+$$
+\nabla X_t = \mu + Z_t - \theta_1 Z_{t-1}, \qquad Z_t \sim \mathrm{WN}(0,\sigma_Z^2),
+$$
+with $X_t$ measured in percent ($100\log P_t$).
+
+```{r tab-cand}
+ct <- cand
+ct$Model <- ifelse(ct$p == 0 & ct$q == 0, "White noise (mean only)",
+              ifelse(ct$p == 0, paste0("MA(", ct$q, ")"),
+                ifelse(ct$q == 0, paste0("AR(", ct$p, ")"), paste0("ARMA(", ct$p, ",", ct$q, ")"))))
+ct$dSBC <- ct$SBC - min(ct$SBC)
+ctab <- data.frame(Model = ct$Model, k = ct$k, LL = f(ct$logLik), AIC = f(ct$AIC), SBC = f(ct$SBC),
+                   dSBC = f(ct$dSBC), LB = fp(ct$LB12))
+names(ctab) <- c("Model for $r_t$", "Parameters", "Log-likelihood", "AIC", "SBC", "$\\Delta$SBC",
+                 "Ljung--Box $Q(12)$ $p$")
+ktab(ctab, "Candidate ARMA models for the daily returns, estimated by maximum likelihood and sorted by SBC.",
+     align = "lcrrrrr") |>
+  row_spec(which(ct$p == 0 & ct$q == 1), bold = TRUE) |>
+  tnote("The initial model is shown in bold. $\\\\Delta$SBC is the difference from the smallest SBC. The parameter count includes the mean.")
+```
+
+# Hypothesis Tests and Confidence Intervals
+
+Table \@ref(tab:tab-ma1) gives the maximum likelihood estimates for the initial model. Using the course sign convention ($Z_t - \theta_1 Z_{t-1}$), $\hat\theta_1 = `r f(theta, 4)`$, so part of today's shock is reversed the next day. Testing $H_0:\theta_1=0$ gives $z = `r f(theta/theta_se)`$ ($p$ `r fp(2*pnorm(-abs(theta/theta_se)))`), and the 95% confidence interval excludes zero. Since $|\hat\theta_1|<1$, the root of $\theta(B)=1-\theta_1B$ lies outside the unit circle, so the model is **invertible** (Note 7) and can be used for forecasting. As noted in Section 3, $\hat\theta_1$ is far from 1, so the series was not over-differenced.
+
+The mean is also significant: $\hat\mu = `r f(mu_ma, 4)`$% per day ($p$ = `r fp(2*pnorm(-abs(mu_ma/mu_se)))`). This is the drift of the log price, about `r f(252*mu_ma, 1)`% per year. Still, the model explains very little of the daily variation: $\hat\sigma_Z^2 = `r f(ma1$sigma2, 3)`$ is barely below the sample variance of the returns (`r f(var(r), 3)`). Past returns contain only a small amount of information about future returns.
+
+```{r tab-ma1}
+est_tab <- function(par, est, se, digits = 4) {
+  z <- est / se; p <- 2 * pnorm(-abs(z))
+  out <- data.frame(par, f(est, digits), f(se, digits), f(z), fp(p),
+                    paste0("[", f(est - 1.96 * se, digits), ", ", f(est + 1.96 * se, digits), "]"))
+  names(out) <- c("Parameter", "Estimate", "Std. error", "$z$", "$p$-value", "95\\% CI")
+  out
+}
+ktab(est_tab(c("$\\theta_1$", "$\\mu$ (mean / drift)"), c(theta, mu_ma), c(theta_se, mu_se)),
+     "Maximum likelihood estimates of the initial model, MA(1) for $r_t$ (ARIMA(0,1,1) with drift for $X_t$).",
+     align = "lrrrrc") |>
+  tnote(paste0("$\\\\hat\\\\sigma_Z^2 = ", f(ma1$sigma2, 3), "$; log-likelihood $= ", f(as.numeric(logLik(ma1))),
+               "$; AIC $= ", f(AIC(ma1)), "$; SBC $= ", f(BIC(ma1)), "$. R reports $-\\\\theta_1$ as \\\\texttt{ma1}."))
+```
+
+# Model Adequacy Checking and Remedial Methods
+
+**Diagnostics of the initial model.** If the model is adequate, its residuals should be approximately white noise (independent) and approximately normal (Notes 7--9). Figure \@ref(fig:fig-diag-ma) and the left half of Table \@ref(tab:tab-diag) show two problems:
+
+1. *Independence.* The Ljung--Box test rejects at lag 6 ($p$ = `r fp(lb_p(ma1_res, 6, 1))`), and the residual ACF has a clear spike at **lag 6** ($\hat\rho(6) = `r f(V$acf6, 3)`$, highlighted in red) that the MA(1) does not capture.
+2. *Normality.* The Q--Q plot bends sharply away from the line in both tails, and the normality tests reject.
+
+**Remedy 1 --- refine the model.** Following the model-building steps in Note 9 (fit, check the residual ACF, then *"check the p-values, make modifications if necessary"*), I added an MA term at lag 6. A full MA(6) adds four insignificant parameters and has a much larger SBC (`r f(BIC(ma6_full))`), so the intermediate coefficients were set to zero ($\theta_2=\cdots=\theta_5=0$). The resulting **subset ARIMA(0,1,6) with drift** is
+$$
+\nabla X_t = \mu + Z_t - \theta_1 Z_{t-1} - \theta_6 Z_{t-6}.
+$$
+It improves **both** AIC (`r f(AIC(fin))` vs. `r f(AIC(ma1))`) and SBC (`r f(BIC(fin))` vs. `r f(BIC(ma1))`). Table \@ref(tab:tab-final) shows that both MA coefficients and the mean are significant at the 0.1% level. The six roots of $\theta(B)=1-\theta_1B-\theta_6B^6$ all have modulus between `r f(min(roots))` and `r f(max(roots))`, so they lie outside the unit circle and the model is **invertible**.
+
+```{r fig-diag-ma, fig.height=2.5, fig.cap="Residual diagnostics for the initial MA(1) model. (a) Residual ACF; the lag-6 spike (red) is not captured by the model. (b) Normal Q--Q plot of the standardized residuals."}
+(acf_plot(ma1_res, "(a) ACF of MA(1) residuals", highlight = 6) + coord_cartesian(ylim = c(-0.08, 0.08))) |
+  qq_plot(ma1_res / sqrt(ma1$sigma2), "(b) Normal Q-Q plot of residuals")
+```
+
+```{r tab-final}
+ktab(est_tab(c("$\\theta_1$", "$\\theta_6$", "$\\mu$ (mean / drift)"),
+             c(th1, th6, mu_f), fin_se[c("ma1", "ma6", "intercept")]),
+     "Maximum likelihood estimates of the final model, $r_t = \\mu + Z_t - \\theta_1 Z_{t-1} - \\theta_6 Z_{t-6}$ (subset ARIMA(0,1,6) with drift for $X_t$).",
+     align = "lrrrrc") |>
+  tnote(paste0("$\\\\theta_2=\\\\cdots=\\\\theta_5=0$ fixed. $\\\\hat\\\\sigma_Z^2 = ", f(fin$sigma2, 3), "$; log-likelihood $= ",
+               f(as.numeric(logLik(fin))), "$; AIC $= ", f(AIC(fin)), "$; SBC $= ", f(BIC(fin)), "$."))
+```
+
+**Diagnostics of the final model.** In the right half of Table \@ref(tab:tab-diag), the Ljung--Box test no longer rejects at lags 6 or 12. The residual ACF (Figure \@ref(fig:fig-diag-final)(b)) has no spikes at low lags. At lags 18 and 24 the test still rejects, but this is driven by a few scattered autocorrelations (e.g., at lags 15, 16, 18 and 24) that are all below 0.04 in size. With `r f(n_r, 0)` observations the 95% bounds are only $\pm`r f(1.96/sqrt(n_r), 3)`$, so even these tiny, isolated correlations are "significant". They have no clear pattern or interpretation, and adding a term for each would overfit (the guideline in Note 9 is that the MA order rarely needs to exceed 3 for parsimony). The final model is therefore adequate for describing the dependence in the mean of the returns.
+
+**Remedy 2 --- non-normality and changing variance.** The residuals are still far from normal: `r f(tail3, 2)`% of standardized residuals lie beyond $\pm3$, compared with `r f(100*2*pnorm(-3), 2)`% for a normal distribution, and the Ljung--Box test on the squared residuals shows that their variance changes over time (calm periods alternate with turbulent ones). Among the course tools, the remedy for a variance that changes with the *level* of the series is a transformation, and the log transformation was already applied. A further Box--Cox transformation of $r_t$ is not possible because returns take negative values, and the heavy tails are symmetric. These violations therefore cannot be fully removed with an ARIMA model, and I account for them as follows:
+
+- With `r f(n_r, 0)` observations, the maximum likelihood estimates are approximately normal by large-sample theory even when the errors are not, so the $z$-tests and confidence intervals in Table \@ref(tab:tab-final) remain valid.
+- Normal-based **prediction intervals** are less reliable. Under the model, about 5% of standardized residuals should fall outside $\pm1.96$ every year. Figure \@ref(fig:fig-outside) shows that the actual share was `r f(yr_out["2008"], 1)`% in 2008 and `r f(yr_out["2009"], 1)`% in 2009, but under 1% in calm years such as `r names(which.min(yr_out[as.numeric(names(yr_out)) > 2010]))`. The intervals are therefore too narrow during crises and too wide in calm periods. Section 7 checks how well they performed out of sample.
+
+```{r fig-outside, fig.height=2.2, fig.cap="Percentage of trading days each year on which the standardized residual of the final model fell outside $\\pm1.96$. The dashed line is the 5\\% expected under a constant-variance normal model."}
+out_df <- data.frame(Year = as.integer(names(yr_out)), pct = as.numeric(yr_out))
+top2 <- out_df[order(-out_df$pct), ][1:2, ]
+ggplot(out_df, aes(Year, pct)) +
+  geom_col(fill = c_blue, width = 0.7) +
+  geom_hline(yintercept = 5, colour = c_orange, linetype = "dashed", linewidth = 0.5) +
+  annotate("text", x = 2026.6, y = 5, label = "Expected 5%", colour = ink2, size = 2.7, hjust = 1, vjust = -0.5) +
+  geom_text(data = top2, aes(label = paste0(f(pct, 1), "%")), vjust = -0.4, size = 2.7, colour = ink) +
+  scale_x_continuous(breaks = seq(2000, 2026, 2), expand = expansion(add = 0.6)) +
+  scale_y_continuous(labels = function(x) paste0(x, "%"), expand = expansion(mult = c(0, 0.12))) +
+  labs(x = NULL, y = "Days outside band") + theme_report()
+```
+
+```{r tab-diag}
+lag_lbl <- paste0("Ljung--Box $Q(", c(6, 12, 18, 24), ")$")
+diag_cols <- function(res, fitdf) {
+  zz <- res / sd(res)
+  stat <- c(lb_q(res, fitdf = fitdf), lb_q(res^2, c(12, 24)),
+            ad.test(zz)$statistic, cvm.test(zz)$statistic, lillie.test(zz)$statistic)
+  p <- c(lb_p(res, fitdf = fitdf), lb_p(res^2, c(12, 24)),
+         ad.test(zz)$p.value, cvm.test(zz)$p.value, lillie.test(zz)$p.value)
+  list(stat = f(stat, 2), p = fp(p))
+}
+dA <- suppressWarnings(diag_cols(ma1_res, 1)); dF <- suppressWarnings(diag_cols(fin_res, 2))
+dg <- data.frame(
+  Test = c(lag_lbl, "Ljung--Box $Q(12)$ on squared residuals", "Ljung--Box $Q(24)$ on squared residuals",
+           "Anderson--Darling", "Cram\\'er--von Mises", "Kolmogorov--Smirnov (Lilliefors)"),
+  Sa = dA$stat, Pa = dA$p, Sf = dF$stat, Pf = dF$p
+)
+names(dg) <- c("Test", "Statistic", "$p$-value", "Statistic", "$p$-value")
+ktab(dg, "Residual diagnostics for the initial MA(1) model and the final subset ARIMA(0,1,6) model.",
+     align = "lrrrr") |>
+  add_header_above(c(" " = 1, "Initial: MA(1)" = 2, "Final: MA lags 1 and 6" = 2)) |>
+  pack_rows("Independence of residuals", 1, 4) |> pack_rows("Constant variance", 5, 6) |>
+  pack_rows("Normality of residuals", 7, 9) |>
+  tnote("Ljung--Box degrees of freedom are reduced by the number of MA parameters (1 for MA(1), 2 for the final model). $H_0$ for the normality tests: residuals are normally distributed.")
+```
+
+```{r fig-diag-final, fig.height=4.6, fig.cap="Residual diagnostics for the final subset ARIMA(0,1,6) model. (a) Standardized residuals over time. (b) Residual ACF. (c) Histogram of standardized residuals with the standard normal density. (d) Normal Q--Q plot."}
+zdf <- data.frame(Date = rdates, z = z_fin)
+f1 <- ggplot(zdf, aes(Date, z)) +
+  geom_hline(yintercept = 0, colour = ink2, linewidth = 0.3) +
+  geom_hline(yintercept = c(-3, 3), colour = c_orange, linetype = "dashed", linewidth = 0.4) +
+  geom_line(colour = c_blue, linewidth = 0.18) +
+  scale_x_date(date_breaks = "4 years", date_labels = "%Y") +
+  labs(title = "(a) Standardized residuals", x = NULL, y = "Residual / SD") + theme_report()
+f2 <- acf_plot(fin_res, "(b) ACF of residuals") + coord_cartesian(ylim = c(-0.08, 0.08))
+f3 <- ggplot(zdf, aes(z)) +
+  geom_histogram(aes(y = after_stat(density)), binwidth = 0.15, fill = c_blue, colour = "white", linewidth = 0.1) +
+  stat_function(fun = dnorm, colour = c_orange, linewidth = 0.6) +
+  coord_cartesian(xlim = c(-5, 5)) +
+  labs(title = "(c) Histogram of std. residuals", x = "Standardized residual", y = "Density") + theme_report()
+(f1 | f2) / (f3 | qq_plot(z_fin, "(d) Normal Q-Q plot"))
+```
+
+# Forecasting
+
+**Out-of-sample comparison.** To compare the final model with the other forecasting methods from the course, every method was re-estimated on all data except the last `r H` trading days (about one year, `r fd(rdates[te[1]])` to `r fd(rdates[n_r])`). Each method then produced one-step-ahead forecasts and 95% prediction intervals over that final year. The benchmarks are the random walk with drift (Note 3) and simple exponential smoothing and Holt's linear trend method applied to the log price (Note 5). Table \@ref(tab:tab-bt) shows that **all methods give practically the same point accuracy** (RMSE $\approx$ `r f(bt[1, "RMSE"], 2)`). The fitted smoothing constant of simple exponential smoothing is $\hat\alpha = `r f(ses_bt$par["alpha"], 3)`$, close to 1, which means the best forecast of tomorrow's log price is essentially today's: the series behaves very much like a random walk with drift. The 95% prediction intervals covered `r f(min(bt[, "Coverage"]), 1)`--`r f(max(bt[, "Coverage"]), 1)`% of actual returns, above the nominal 95%. The final year was calmer than the 26-year average on which the constant variance $\hat\sigma_Z^2$ is based, which is the "changing variance" problem from Section 6 at work.
+
+```{r tab-bt}
+btab <- data.frame(Method = rownames(bt), RMSE = f(bt[, "RMSE"], 3), MAE = f(bt[, "MAE"], 3),
+                   Cov = f(bt[, "Coverage"], 1), W = f(bt[, "Width"], 2))
+names(btab) <- c("Method", "RMSE", "MAE", "95\\% PI coverage (\\%)", "PI width (pct. pts.)")
+ktab(btab, paste0("One-step-ahead forecast accuracy for daily returns over the last ", H,
+                  " trading days (all methods estimated on the earlier data)."), align = "lrrrr") |>
+  row_spec(nrow(btab), bold = TRUE) |>
+  tnote("Errors are in percentage points of daily return. Exponential smoothing methods are applied to the log price, and their forecasts are converted to returns. Nominal coverage is 95\\\\%.")
+```
+
+**Forecasts of the price.** Finally, the final model was estimated on the full sample and used to forecast the next `r hH` trading days. The forecasts of $X_t$ and their limits were back-transformed with $\exp(\cdot)$, which gives the median price forecast and asymmetric prediction intervals (Table \@ref(tab:tab-fc), Figure \@ref(fig:fig-fc)). The median forecast rises only slightly, from \$`r f(P_T)` to \$`r f(fc_df$med[hH])` after `r hH` days, reflecting the small positive drift, while the uncertainty grows quickly with the horizon: the 95% interval after one month runs from \$`r f(fc_df$lo95[hH])` to \$`r f(fc_df$hi95[hH])`.
+
+```{r tab-fc}
+hs <- c(1, 5, 10, 20)
+ftab <- data.frame(h = hs, Date = format(fc_df$Date[hs], "%b %d, %Y"), M = f(fc_df$med[hs]),
+                   I80 = paste0("[", f(fc_df$lo80[hs]), ", ", f(fc_df$hi80[hs]), "]"),
+                   I95 = paste0("[", f(fc_df$lo95[hs]), ", ", f(fc_df$hi95[hs]), "]"))
+names(ftab) <- c("Horizon $h$", "Date", "Median forecast", "80\\% PI", "95\\% PI")
+ktab(ftab, paste0("Forecasts of the CSX adjusted closing price (USD) from the final model, starting from the last observation on ",
+                  fd(dates[n_p]), " (\\$", f(P_T), ")."), align = "clrcc") |>
+  tnote("Horizons are in trading days; dates assume no market holidays.")
+```
+
+```{r fig-fc, fig.height=3.1, fig.cap="Twenty-day forecast of the CSX adjusted closing price from the final model. The black line shows the last six months of data; the blue line is the median forecast with 80\\% and 95\\% prediction intervals."}
+hist_df <- data.frame(Date = tail(dates, 126), price = tail(price, 126))
+bridge <- rbind(data.frame(Date = dates[n_p], med = P_T, lo80 = P_T, hi80 = P_T, lo95 = P_T, hi95 = P_T), fc_df)
+endlab <- data.frame(Date = fc_df$Date[hH], y = c(fc_df$hi95[hH], fc_df$med[hH], fc_df$lo95[hH]),
+                     lab = paste0("$", f(c(fc_df$hi95[hH], fc_df$med[hH], fc_df$lo95[hH]))))
+ggplot() +
+  geom_ribbon(data = bridge, aes(Date, ymin = lo95, ymax = hi95, fill = "95% prediction interval"), alpha = 0.18) +
+  geom_ribbon(data = bridge, aes(Date, ymin = lo80, ymax = hi80, fill = "80% prediction interval"), alpha = 0.32) +
+  geom_line(data = hist_df, aes(Date, price, colour = "Observed price"), linewidth = 0.45) +
+  geom_line(data = bridge, aes(Date, med, colour = "Median forecast"), linewidth = 0.6) +
+  geom_point(data = data.frame(Date = dates[n_p], price = P_T), aes(Date, price), colour = ink, size = 1.4) +
+  geom_text(data = endlab, aes(Date, y, label = lab), hjust = -0.15, size = 2.7, colour = ink) +
+  scale_fill_manual(values = c("80% prediction interval" = c_blue, "95% prediction interval" = c_blue),
+                    breaks = c("80% prediction interval", "95% prediction interval")) +
+  scale_colour_manual(values = c("Observed price" = ink, "Median forecast" = c_blue),
+                      breaks = c("Observed price", "Median forecast")) +
+  guides(fill = guide_legend(override.aes = list(alpha = c(0.45, 0.2)))) +
+  scale_y_continuous(labels = label_dollar()) +
+  scale_x_date(date_breaks = "1 month", date_labels = "%b %Y", expand = expansion(mult = c(0.01, 0.09))) +
+  labs(x = NULL, y = "Adjusted close (USD)") + theme_report() + theme(plot.margin = margin(4, 16, 4, 4))
+```
+
+# Conclusions
+
+1. **The CSX price is non-stationary.** After a log transformation, the plot and the slowly decaying ACF show a non-stationary series. The ADF test cannot reject a unit root around a constant mean, and the trend version is only borderline. Removing a linear trend leaves deviations that last for years, so differencing (rather than estimating the trend) is appropriate. One difference, giving the daily log return, produces a stationary series.
+2. **Returns are close to white noise, but not exactly.** The ACF/PACF and SBC pointed to an ARIMA(0,1,1) with drift. Residual checking revealed a missed lag-6 correlation, and the final model is a **subset ARIMA(0,1,6) with drift** ($\theta_2=\cdots=\theta_5=0$). It has the best AIC and SBC, significant parameters, and is invertible. The coefficients ($\hat\theta_1\approx`r f(th1, 3)`$, $\hat\theta_6\approx`r f(th6, 3)`$) and the drift ($\approx`r f(252*mu_f, 0)`$% per year) are statistically significant but small in practical terms.
+3. **Forecasting the direction of the stock is very hard.** The final ARIMA model, the random walk with drift, and simple and Holt exponential smoothing all forecast equally well out of sample. The smoothing constant near 1 confirms that the log price behaves almost like a random walk with drift.
+4. **The main remaining violations are heavy tails and changing variance.** Parameter tests are still valid in this large sample, but normal-based prediction intervals should be read with caution. They were too wide in the calm final year, and they would be too narrow in a crisis such as 2008 or 2020.
+
+**Limitations and extensions.** The ARIMA models in this course describe the conditional *mean* and assume a constant variance. A natural next step beyond the course would be a model in which the variance itself changes over time (for example, a GARCH-type model), which is the standard tool for the volatility clustering found here.
+
+\newpage
+
+# Appendix: R Code {-}
+
+All results were produced in R `r paste(R.version$major, R.version$minor, sep = ".")` with the packages `forecast`, `tseries`, `urca`, `nortest`, `ggplot2`, `patchwork`, `scales` and `kableExtra`. The source file `CSX_Time_Series_Report.Rmd` reproduces the entire report from `CSX_daily.csv`.
+
+```{r ref.label=knitr::all_labels(), echo=TRUE, eval=FALSE}
+```
