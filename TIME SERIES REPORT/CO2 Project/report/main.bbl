@@ -1,0 +1,66 @@
+\begin{thebibliography}{10}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Box et~al.(2015)Box, Jenkins, Reinsel, and Ljung]{box2015}
+George E.~P. Box, Gwilym~M. Jenkins, Gregory~C. Reinsel, and Greta~M. Ljung.
+\newblock \emph{Time Series Analysis: Forecasting and Control}.
+\newblock Wiley, Hoboken, NJ, 5th edition, 2015.
+
+\bibitem[Dickey and Fuller(1979)]{dickey1979}
+David~A. Dickey and Wayne~A. Fuller.
+\newblock Distribution of the estimators for autoregressive time series with a
+  unit root.
+\newblock \emph{Journal of the American Statistical Association}, 74\penalty0
+  (366):\penalty0 427--431, 1979.
+
+\bibitem[Hyndman and Khandakar(2008)]{hyndman2008}
+Rob~J. Hyndman and Yeasmin Khandakar.
+\newblock Automatic time series forecasting: The forecast package for {R}.
+\newblock \emph{Journal of Statistical Software}, 27\penalty0 (3):\penalty0
+  1--22, 2008.
+
+\bibitem[Jia(2026)]{jia2026}
+Y.~Jia.
+\newblock {STA6938} time series: Lecture notes 3--9.
+\newblock Course notes, 2026.
+
+\bibitem[Keeling(1960)]{keeling1960}
+Charles~D. Keeling.
+\newblock The concentration and isotopic abundances of carbon dioxide in the
+  atmosphere.
+\newblock \emph{Tellus}, 12\penalty0 (2):\penalty0 200--203, 1960.
+
+\bibitem[Lan and Keeling(2026)]{noaa2026}
+Xin Lan and Ralph~F. Keeling.
+\newblock Trends in atmospheric carbon dioxide: {Mauna Loa} monthly mean data.
+\newblock NOAA Global Monitoring Laboratory and Scripps Institution of
+  Oceanography, 2026.
+\newblock URL \url{https://gml.noaa.gov/ccgg/trends/}.
+\newblock Accessed November 2026.
+
+\bibitem[Ljung and Box(1978)]{ljung1978}
+Greta~M. Ljung and George E.~P. Box.
+\newblock On a measure of lack of fit in time series models.
+\newblock \emph{Biometrika}, 65\penalty0 (2):\penalty0 297--303, 1978.
+
+\bibitem[Schwarz(1978)]{schwarz1978}
+Gideon Schwarz.
+\newblock Estimating the dimension of a model.
+\newblock \emph{The Annals of Statistics}, 6\penalty0 (2):\penalty0 461--464,
+  1978.
+
+\bibitem[Shapiro and Wilk(1965)]{shapiro1965}
+Samuel~S. Shapiro and Martin~B. Wilk.
+\newblock An analysis of variance test for normality (complete samples).
+\newblock \emph{Biometrika}, 52\penalty0 (3/4):\penalty0 591--611, 1965.
+
+\bibitem[Winters(1960)]{winters1960}
+Peter~R. Winters.
+\newblock Forecasting sales by exponentially weighted moving averages.
+\newblock \emph{Management Science}, 6\penalty0 (3):\penalty0 324--342, 1960.
+
+\end{thebibliography}

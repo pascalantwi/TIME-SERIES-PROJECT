@@ -1,0 +1,466 @@
+
+== n ==
+[1] 822
+
+== start ==
+[1] "Mar 1958"
+
+== end ==
+[1] "Aug 2026"
+
+== first ==
+[1] 315.71
+
+== last ==
+[1] 427.55
+
+== mean ==
+[1] 361.3605
+
+== sd ==
+[1] 33.45619
+
+== min ==
+[1] 312.42
+
+== min_date ==
+[1] "Oct 1958"
+
+== max ==
+[1] 432.34
+
+== max_date ==
+[1] "May 2026"
+
+== seas_peak ==
+[1] "May"
+
+== seas_peak_val ==
+[1] 3.036041
+
+== seas_trough ==
+[1] "Oct"
+
+== seas_trough_val ==
+[1] -3.252627
+
+== seas_amp ==
+[1] 6.288669
+
+== amp_min ==
+[1] 5.34125
+
+== amp_max ==
+[1] 7.635417
+
+== amp_1960s ==
+[1] 6.023917
+
+== amp_2010s ==
+[1] 6.968875
+
+== var_trend_share ==
+[1] 0.9659589
+
+== rem_sd ==
+[1] 0.2995358
+
+== lambda ==
+[1] 0.101793
+
+== growth_1960s ==
+    1960s 
+0.8639167 
+
+== growth_2010s ==
+   2010s 
+2.400667 
+
+== growth_2020s ==
+   2020s 
+2.538625 
+
+== growth_all ==
+[1] 1.677086
+
+== reg_r2 ==
+[1] 0.9994118
+
+== reg_sigma ==
+[1] 0.8179236
+
+== reg_b1 ==
+        tt 
+0.06206248 
+
+== reg_b2 ==
+     I(tt^2) 
+9.367516e-05 
+
+== reg_res_acf1 ==
+[1] 0.9151301
+
+== reg_lb12 ==
+X-squared 
+ 5991.016 
+
+== adf_sa_drift_range ==
+[1] 3.570567 4.845576
+
+== adf_sa_trend_range ==
+[1] -0.8760399 -0.6204942
+
+== adf_raw13 ==
+[1] -0.3320725
+
+== adf_d12_range ==
+[1] -7.914373 -5.374135
+
+== adf_dd_range ==
+[1] -37.89406 -22.04853
+
+== adf_cv5_drift ==
+[1] -2.86
+
+== adf_cv5_trend ==
+[1] -3.41
+
+== acf_x_1 ==
+[1] 0.99579
+
+== acf_x_36 ==
+[1] 0.8650848
+
+== acf_d1_12 ==
+[1] 0.9246796
+
+== acf_d1_24 ==
+[1] 0.9098561
+
+== acf_d1_36 ==
+[1] 0.8944241
+
+== acf_d12_1 ==
+[1] 0.85606
+
+== acf_d12_2 ==
+[1] 0.7921815
+
+== acf_d12_3 ==
+[1] 0.7446344
+
+== phi_d0 ==
+      ar1 
+0.9992642 
+
+== phi_d0_se ==
+         ar1 
+0.0009663724 
+
+== lb_dd ==
+     X-squared             
+[1,]  69.99082 4.106715e-13
+[2,] 283.31534 0.000000e+00
+[3,] 295.43441 0.000000e+00
+[4,] 301.19020 0.000000e+00
+
+== acf_dd_1 ==
+[1] -0.2804673
+
+== acf_dd_11 ==
+[1] 0.1845691
+
+== acf_dd_12 ==
+[1] -0.4708415
+
+== acf_dd_13 ==
+[1] 0.04246098
+
+== pacf_dd_1 ==
+[1] -0.2804673
+
+== pacf_dd_12 ==
+[1] -0.378256
+
+== pacf_dd_24 ==
+[1] -0.2597401
+
+== pacf_dd_36 ==
+[1] -0.1628473
+
+== bound_dd ==
+[1] 0.06890993
+
+== n_dd ==
+[1] 809
+
+== cand ==
+                    Model Parameters    LogLik      AIC      SBC       LB24_p
+1 ARIMA(0,1,1)(0,1,1)[12]          2 -222.6506 451.3011 465.3885 5.315694e-01
+3 ARIMA(1,1,1)(0,1,1)[12]          3 -219.7912 447.5824 466.3656 7.686773e-01
+4 ARIMA(0,1,2)(0,1,1)[12]          3 -220.2969 448.5937 467.3769 7.230308e-01
+7 ARIMA(0,1,1)(0,1,2)[12]          3 -222.6489 453.2978 472.0810 4.721145e-01
+6 ARIMA(0,1,1)(1,1,1)[12]          3 -222.6489 453.2979 472.0811 4.720388e-01
+9 ARIMA(1,1,1)(1,1,1)[12]          4 -219.7867 449.5734 473.0524 7.151370e-01
+5 ARIMA(2,1,0)(0,1,1)[12]          3 -226.3197 460.6393 479.4225 2.126145e-01
+2 ARIMA(1,1,0)(0,1,1)[12]          2 -233.4139 472.8278 486.9152 3.764271e-02
+8 ARIMA(0,1,1)(1,1,0)[12]          2 -331.6691 669.3382 683.4256 1.110223e-16
+         dSBC
+1   0.0000000
+3   0.9771078
+4   1.9884153
+7   6.6924509
+6   6.6925578
+9   7.6638789
+5  14.0340104
+2  21.5266249
+8 218.0370645
+
+== est ==
+                                     Model                    Method
+ma1         Final: ARIMA(0,1,1)(0,1,1)[12]        Maximum likelihood
+sma1        Final: ARIMA(0,1,1)(0,1,1)[12]        Maximum likelihood
+ma11        Final: ARIMA(0,1,1)(0,1,1)[12] Conditional least squares
+sma11       Final: ARIMA(0,1,1)(0,1,1)[12] Conditional least squares
+ar1   Alternative: ARIMA(1,1,1)(0,1,1)[12]        Maximum likelihood
+ma12  Alternative: ARIMA(1,1,1)(0,1,1)[12]        Maximum likelihood
+sma12 Alternative: ARIMA(1,1,1)(0,1,1)[12]        Maximum likelihood
+                     Parameter  Estimate         SE         z            p
+ma1            theta_1 (MA(1)) 0.3884770 0.03669947 10.585357 3.484504e-26
+sma1  Theta_1 (seasonal MA(1)) 0.8699834 0.01696439 51.282915 0.000000e+00
+ma11           theta_1 (MA(1)) 0.4171804 0.03596109 11.600881 4.078571e-31
+sma11 Theta_1 (seasonal MA(1)) 0.8116116 0.01940010 41.835429 0.000000e+00
+ar1              phi_1 (AR(1)) 0.2151492 0.08373098  2.569529 1.018369e-02
+ma12           theta_1 (MA(1)) 0.5743881 0.07008098  8.196063 2.483878e-16
+sma12 Theta_1 (seasonal MA(1)) 0.8699322 0.01689146 51.501311 0.000000e+00
+         Lower95   Upper95
+ma1   0.31654601 0.4604079
+sma1  0.83673318 0.9032336
+ma11  0.34669664 0.4876641
+sma11 0.77358738 0.8496358
+ar1   0.05103644 0.3792619
+ma12  0.43702941 0.7117468
+sma12 0.83682490 0.9030394
+
+== sigma2_ml ==
+[1] 0.1012372
+
+== sigma2_css ==
+[1] 0.1063065
+
+== sigma2_alt ==
+[1] 0.1006579
+
+== loglik ==
+[1] -222.6506
+
+== aic ==
+[1] 451.3011
+
+== sbc ==
+[1] 465.3885
+
+== aic_alt ==
+[1] 447.5824
+
+== sbc_alt ==
+[1] 466.3656
+
+== root_ma ==
+     ma1 
+2.574155 
+
+== root_sma ==
+    sma1 
+1.011674 
+
+== root_ar_alt ==
+     ar1 
+4.647938 
+
+== root_ma_alt ==
+     ma1 
+1.740983 
+
+== rho1_model ==
+       ma1 
+-0.3375377 
+
+== rho12_model ==
+      sma1 
+-0.4951891 
+
+== rho13_model ==
+     ma1 
+0.167145 
+
+== pi_1_3 ==
+[1] 0.38847697 0.15091436 0.05862675
+
+== pi_12 ==
+     sma1 
+0.8699834 
+
+== acf_final_1_6 ==
+[1]  0.032 -0.050 -0.081 -0.023 -0.016 -0.006
+
+== acf_alt_1_6 ==
+[1] -0.002  0.013 -0.042 -0.001 -0.009 -0.003
+
+== lb_short_final ==
+[1] 0.0038 0.0122 0.0290
+
+== n_acf_out ==
+[1] 1
+
+== diag_alt ==
+          Residuals                     Test  Statistic           p
+1 Alternative model           Ljung-Box Q(6)  1.6959576 0.637832890
+2 Alternative model          Ljung-Box Q(12)  2.2130938 0.987632127
+3 Alternative model          Ljung-Box Q(18)  7.7298161 0.934157253
+4 Alternative model          Ljung-Box Q(24) 16.0173177 0.768677299
+5 Alternative model Ljung-Box Q(12), squared  9.9868578 0.617113664
+6 Alternative model Ljung-Box Q(24), squared 32.4555683 0.116092001
+7 Alternative model             Shapiro-Wilk  0.9960704 0.036628315
+8 Alternative model         Anderson-Darling  0.7705985 0.045111851
+9 Alternative model              Jarque-Bera 11.1321666 0.003825434
+
+== diag_all ==
+      Residuals                     Test  Statistic           p
+1 All residuals           Ljung-Box Q(6)  9.0501546 0.059858009
+2 All residuals          Ljung-Box Q(12)  9.7400581 0.463587328
+3 All residuals          Ljung-Box Q(18) 14.4266240 0.566963639
+4 All residuals          Ljung-Box Q(24) 20.8250886 0.531569417
+5 All residuals Ljung-Box Q(12), squared 12.3979643 0.414270752
+6 All residuals Ljung-Box Q(24), squared 35.3591812 0.063249656
+7 All residuals             Shapiro-Wilk  0.9962642 0.047755259
+8 All residuals         Anderson-Darling  0.7997788 0.038216060
+9 All residuals              Jarque-Bera 10.3063382 0.005781055
+
+== skew ==
+[1] 0.1136334
+
+== exkurt ==
+[1] 0.352252
+
+== n_out ==
+[1] 5
+
+== out_dates ==
+[1] "Mar 1959" "Mar 1977" "Sep 1986" "Apr 2016" "Mar 2022"
+
+== out_z ==
+[1] -3.458956  3.305778  3.114411  3.966117 -3.532665
+
+== var_first_half ==
+[1] 0.09076862
+
+== var_second_half ==
+[1] 0.1073624
+
+== diag_rob ==
+                       Residuals                     Test  Statistic          p
+1 Outlying months set to missing           Ljung-Box Q(6)  7.9851978 0.09212193
+2 Outlying months set to missing          Ljung-Box Q(12) 10.3055719 0.41410586
+3 Outlying months set to missing          Ljung-Box Q(18) 14.8710491 0.53410264
+4 Outlying months set to missing          Ljung-Box Q(24) 18.7319758 0.66181552
+5 Outlying months set to missing Ljung-Box Q(12), squared 16.9345582 0.15207564
+6 Outlying months set to missing Ljung-Box Q(24), squared 40.2932409 0.01988648
+7 Outlying months set to missing             Shapiro-Wilk  0.9973553 0.21050048
+8 Outlying months set to missing         Anderson-Darling  0.6295621 0.10062085
+9 Outlying months set to missing              Jarque-Bera  4.7348560 0.09372147
+
+== est_rob ==
+      ma1      sma1 
+0.3837826 0.8689159 
+
+== est_rob_se ==
+       ma1       sma1 
+0.03718069 0.01689292 
+
+== sigma2_rob ==
+[1] 0.09776386
+
+== lb_min_p_final ==
+[1] 0.003818992
+
+== lb_min_lag_final ==
+[1] 3
+
+== hw_alpha ==
+    alpha 
+0.5336979 
+
+== hw_beta ==
+      beta 
+0.01390134 
+
+== hw_gamma ==
+   gamma 
+0.299042 
+
+== hw_level ==
+       a 
+429.1464 
+
+== hw_slope ==
+        b 
+0.2029673 
+
+== hw_rmse_in ==
+[1] 0.3238637
+
+== arima_rmse_in ==
+[1] 0.3152747
+
+== acc ==
+                                                   RMSE       MAE      MAPE
+Final: ARIMA(0,1,1)(0,1,1)[12]                 1.109768 1.0098993 0.2366829
+Alternative: ARIMA(1,1,1)(0,1,1)[12]           1.167648 1.0720669 0.2512629
+Holt-Winters (additive)                        0.981410 0.8753916 0.2052036
+Regression: quadratic trend + seasonal dummies 1.491263 1.4130231 0.3313568
+Seasonal naive                                 6.448212 6.0688889 1.4215790
+                                               Coverage
+Final: ARIMA(0,1,1)(0,1,1)[12]                 97.22222
+Alternative: ARIMA(1,1,1)(0,1,1)[12]           83.33333
+Holt-Winters (additive)                        97.22222
+Regression: quadratic trend + seasonal dummies 52.77778
+Seasonal naive                                 25.00000
+
+== test_start ==
+[1] "Sep 2023"
+
+== test_end ==
+[1] "Aug 2026"
+
+== fc_first ==
+     Month Forecast  Lower80  Upper80  Lower95  Upper95 HoltWinters
+1 Sep 2026 426.1551 425.7474 426.5629 425.5315 426.7788    426.1925
+
+== fc_may2027 ==
+     Month Forecast Lower80  Upper80  Lower95  Upper95 HoltWinters
+9 May 2027 434.3587 433.544 435.1734 433.1128 435.6046    434.4685
+
+== fc_may2030 ==
+      Month Forecast  Lower80  Upper80  Lower95  Upper95 HoltWinters
+45 May 2030 441.5855 439.5584 443.6125 438.4853 444.6856    441.7753
+
+== fc_dec2030 ==
+      Month Forecast Lower80 Upper80  Lower95  Upper95 HoltWinters
+52 Dec 2030 439.0305 436.781  441.28 435.5902 442.4708     439.156
+
+== fc_440 ==
+[1] "Apr 2030"
+
+== fc_year_means ==
+    2026     2027     2028     2029     2030 
+427.4945 431.4435 433.8525 436.2614 438.6703 
+
+== hw_dec2030 ==
+[1] 439.156
+
+== pi_width_1 ==
+[1] 1.247235
+
+== pi_width_end ==
+[1] 6.880567
