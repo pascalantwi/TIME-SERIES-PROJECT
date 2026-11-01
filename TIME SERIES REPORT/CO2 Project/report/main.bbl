@@ -1,4 +1,4 @@
-\begin{thebibliography}{9}
+\begin{thebibliography}{8}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
@@ -44,11 +44,6 @@ Gideon Schwarz.
 \newblock Estimating the dimension of a model.
 \newblock \emph{The Annals of Statistics}, 6\penalty0 (2):\penalty0 461--464,
   1978.
-
-\bibitem[Shumway and Stoffer(2017)]{shumway2017}
-Robert~H. Shumway and David~S. Stoffer.
-\newblock \emph{Time Series Analysis and Its Applications: With {R} Examples}.
-\newblock Springer, Cham, 4th edition, 2017.
 
 \bibitem[Winters(1960)]{winters1960}
 Peter~R. Winters.
