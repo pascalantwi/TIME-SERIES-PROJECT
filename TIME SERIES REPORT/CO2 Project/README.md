@@ -13,7 +13,7 @@ STA6938 Time Series. Data: NOAA Global Monitoring Laboratory, 822 monthly means,
 | `report/main.pdf` | **The report** (5 pages; text, values and interpretation only, with no tables or figures, as the professor requires) |
 | `report/main.tex`, `report/references.bib` | LaTeX source of the report |
 | `CO2_Report_LaTeX.zip` | The LaTeX report as a zip, ready to upload to Overleaf |
-| `figures/` | 15 figures for the slides: PNG (300 dpi) and PDF (vector) |
+| `figures/` | 15 figures for the slides: PNG (600 dpi) and PDF (vector, fonts embedded); academic style: Palatino serif type, framed panels, colour-blind-safe Okabe–Ito palette |
 | `tables/` | 17 tables for the slides: CSV (Excel/PowerPoint) and `.tex` (Beamer, `booktabs`) |
 | `R/co2_analysis.R` | The full analysis; regenerates every figure, table and number |
 | `results/key_values.txt` | Every number quoted in the report |

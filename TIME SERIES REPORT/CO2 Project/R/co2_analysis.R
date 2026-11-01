@@ -17,9 +17,11 @@ f  <- function(x, d = 2) formatC(x, format = "f", digits = d, big.mark = ",")
 fp <- function(p) ifelse(p < 0.001, "< 0.001", formatC(p, format = "f", digits = 3))
 ym <- function(t) format(as.Date(paste(floor(t + 1e-6), round((t - floor(t + 1e-6)) * 12) + 1, 1, sep = "-")), "%b %Y")
 
+# Publication output: 600-dpi PNG (anti-aliased) and vector PDF with embedded fonts
 save_fig <- function(p, name, w = 9, h = 5) {
-  ggsave(file.path("figures", paste0(name, ".png")), p, width = w, height = h, dpi = 300, bg = "white")
-  ggsave(file.path("figures", paste0(name, ".pdf")), p, width = w, height = h)
+  ggsave(file.path("figures", paste0(name, ".png")), p, width = w, height = h, dpi = 600, bg = "white",
+         device = ragg::agg_png)
+  ggsave(file.path("figures", paste0(name, ".pdf")), p, width = w, height = h, device = cairo_pdf)
 }
 save_tab <- function(df, name, align = NULL) {
   write.csv(df, file.path("tables", paste0(name, ".csv")), row.names = FALSE)
@@ -29,24 +31,38 @@ save_tab <- function(df, name, align = NULL) {
 values <- list()
 keep <- function(name, value) values[[name]] <<- value
 
-# ---- Chart style -------------------------------------------------------------
-ink <- "#0b0b0b"; ink2 <- "#52514e"; grid_col <- "#e7e6e2"
-c_blue <- "#2a78d6"; c_orange <- "#eb6834"; c_aqua <- "#1baf7a"; c_red <- "#e34948"; c_grey <- "#8f8d86"
+# ---- Chart style: academic publication theme ----------------------------------
+# Serif type matching the report (TeX Gyre Pagella = Palatino), framed panels, outward
+# ticks, faint major grid, and the colour-blind-safe Okabe-Ito palette.
+font_family <- "TeX Gyre Pagella"
+ink <- "black"; ink2 <- "grey25"; grid_col <- "grey91"; c_ref <- "grey40"
+c_blue <- "#0072B2"; c_orange <- "#D55E00"; c_aqua <- "#009E73"; c_red <- "#D55E00"; c_grey <- "grey60"
 
 theme_slide <- function(base = 13) {
-  theme_minimal(base_size = base) +
+  theme_bw(base_size = base, base_family = font_family) +
     theme(
+      panel.border = element_rect(colour = "black", fill = NA, linewidth = 0.5),
+      panel.grid.major = element_line(colour = grid_col, linewidth = 0.3),
       panel.grid.minor = element_blank(),
-      panel.grid.major = element_line(colour = grid_col, linewidth = 0.35),
-      axis.title = element_text(colour = ink2, size = rel(0.85)),
-      axis.text = element_text(colour = ink2, size = rel(0.8)),
-      plot.title = element_text(face = "bold", colour = ink, size = rel(0.95)),
-      plot.title.position = "plot",
-      legend.position = "top", legend.justification = "left",
-      legend.title = element_blank(), legend.text = element_text(colour = ink2),
+      axis.ticks = element_line(colour = "black", linewidth = 0.4),
+      axis.ticks.length = unit(3, "pt"),
+      axis.text = element_text(colour = "black", size = rel(0.85)),
+      axis.title = element_text(colour = "black", size = rel(0.95)),
+      plot.title = element_text(face = "bold", colour = "black", size = rel(0.95), hjust = 0, margin = margin(b = 5)),
+      plot.title.position = "panel",
+      legend.position = "top", legend.justification = "left", legend.title = element_blank(),
+      legend.key = element_blank(), legend.background = element_blank(),
+      legend.text = element_text(colour = "black", size = rel(0.85)),
+      legend.margin = margin(0, 0, 0, 0), legend.box.margin = margin(0, 0, -2, 0),
+      strip.background = element_rect(fill = "grey95", colour = "black", linewidth = 0.5),
+      strip.text = element_text(face = "bold", colour = "black", hjust = 0),
       plot.margin = margin(6, 12, 6, 6)
     )
 }
+decade_breaks <- as.Date(paste0(seq(1960, 2030, 10), "-01-01"))
+update_geom_defaults("text", list(family = font_family, colour = "black"))
+update_geom_defaults("label", list(family = font_family, colour = "black"))
+update_geom_defaults(ggrepel::GeomTextRepel, list(family = font_family, colour = "black"))
 
 acf_panel <- function(x, title, lag.max = 48, partial = FALSE, seasonal = TRUE) {
   a <- if (partial) pacf(x, lag.max = lag.max, plot = FALSE) else acf(x, lag.max = lag.max, plot = FALSE)
@@ -56,9 +72,9 @@ acf_panel <- function(x, title, lag.max = 48, partial = FALSE, seasonal = TRUE) 
   b <- 1.96 / sqrt(length(x))
   ggplot(df, aes(lag, r)) +
     geom_hline(yintercept = 0, colour = ink2, linewidth = 0.3) +
-    geom_hline(yintercept = c(-b, b), colour = c_orange, linetype = "dashed", linewidth = 0.5) +
-    geom_segment(aes(xend = lag, yend = 0, colour = seas), linewidth = 0.8, show.legend = FALSE) +
-    geom_point(aes(colour = seas), size = 1.3, show.legend = FALSE) +
+    geom_hline(yintercept = c(-b, b), colour = c_ref, linetype = "dashed", linewidth = 0.45) +
+    geom_segment(aes(xend = lag, yend = 0, colour = seas), linewidth = 0.7, show.legend = FALSE) +
+    geom_point(aes(colour = seas), size = 1.2, show.legend = FALSE) +
     scale_colour_manual(values = c(`FALSE` = c_blue, `TRUE` = c_red)) +
     scale_x_continuous(breaks = seq(0, lag.max, 12)) +
     labs(title = title, x = "Lag (months)", y = if (partial) "PACF" else "ACF") + theme_slide()
@@ -446,14 +462,14 @@ save_tab(data.frame(Month = fc_df$Month[sel], Forecast = f(fc_df$Forecast[sel]),
 df <- data.frame(Date = dates, co2 = as.numeric(x), trend = as.numeric(dec$trend))
 p <- ggplot(df, aes(Date)) +
   geom_line(aes(y = co2, colour = "Monthly mean"), linewidth = 0.45) +
-  geom_line(aes(y = trend, colour = "Trend (2x12 moving average)"), linewidth = 1) +
-  scale_colour_manual(values = c("Monthly mean" = c_blue, "Trend (2x12 moving average)" = c_orange)) +
+  geom_line(aes(y = trend, colour = "Trend (2×12 moving average)"), linewidth = 1) +
+  scale_colour_manual(values = c("Monthly mean" = c_blue, "Trend (2×12 moving average)" = c_orange)) +
   annotate("label", x = dates[n] - 3000, y = x[n] + 4, label = paste0(f(x[n]), " ppm (", ym(tm[n]), ")"),
            size = 3.6, colour = ink, fill = "white", label.size = 0) +
   annotate("label", x = dates[1] + 3000, y = x[1] - 3, label = paste0(f(x[1]), " ppm (", ym(tm[1]), ")"),
            size = 3.6, colour = ink, fill = "white", label.size = 0) +
-  scale_y_continuous(expand = expansion(mult = 0.06)) +
-  scale_x_date(date_breaks = "10 years", date_labels = "%Y") +
+  scale_y_continuous(breaks = seq(300, 440, 20), expand = expansion(mult = 0.06)) +
+  scale_x_date(breaks = decade_breaks, date_labels = "%Y") +
   labs(x = NULL, y = expression(CO[2] ~ "(ppm)")) + theme_slide()
 save_fig(p, "fig01_co2_series")
 
@@ -465,7 +481,7 @@ dd_df <- rbind(
 dd_df$panel <- factor(dd_df$panel, levels = c("Observed", "Trend", "Seasonal", "Remainder"))
 p <- ggplot(dd_df, aes(Date, value)) + geom_line(colour = c_blue, linewidth = 0.4, na.rm = TRUE) +
   facet_wrap(~panel, ncol = 1, scales = "free_y", strip.position = "left") +
-  scale_x_date(date_breaks = "10 years", date_labels = "%Y") +
+  scale_x_date(breaks = decade_breaks, date_labels = "%Y") +
   labs(x = NULL, y = NULL) + theme_slide() +
   theme(strip.placement = "outside", strip.text = element_text(face = "bold", colour = ink2))
 save_fig(p, "fig02_classical_decomposition", h = 6.5)
@@ -503,14 +519,14 @@ p <- ggplot(gdf, aes(Date, g)) +
   geom_label(data = gm[gm$dec != "1950s", ], aes(x = start + (end - start) / 2, y = g + 0.35, label = f(g)), size = 3.4,
              colour = ink, fill = "white", label.size = 0) +
   scale_colour_manual(values = c("Lag-12 difference (ppm/yr)" = c_blue, "Decade average" = c_orange)) +
-  scale_x_date(date_breaks = "10 years", date_labels = "%Y") +
+  scale_x_date(breaks = decade_breaks, date_labels = "%Y") +
   labs(x = NULL, y = "Increase over 12 months (ppm)") + theme_slide()
 save_fig(p, "fig06_annual_growth_lag12_difference")
 
 p <- ggplot(data.frame(Date = dates[-(1:13)], v = as.numeric(dd)), aes(Date, v)) +
   geom_hline(yintercept = 0, colour = ink2, linewidth = 0.3) +
   geom_line(colour = c_blue, linewidth = 0.4) +
-  scale_x_date(date_breaks = "10 years", date_labels = "%Y") +
+  scale_x_date(breaks = decade_breaks, date_labels = "%Y") +
   labs(x = NULL, y = expression(nabla * nabla[12] * X[t] ~ "(ppm)")) + theme_slide()
 save_fig(p, "fig07_regular_and_seasonal_difference")
 
@@ -521,7 +537,7 @@ save_fig(p, "fig08_acf_pacf_differenced", h = 6.5)
 rdf <- data.frame(Date = dates, r = reg_res)
 p <- (ggplot(rdf, aes(Date, r)) + geom_hline(yintercept = 0, colour = ink2, linewidth = 0.3) +
         geom_line(colour = c_blue, linewidth = 0.4) +
-        scale_x_date(date_breaks = "10 years", date_labels = "%Y") +
+        scale_x_date(breaks = decade_breaks, date_labels = "%Y") +
         labs(title = "(a) Residuals of quadratic trend + seasonal dummies", x = NULL, y = "ppm") + theme_slide()) |
      (acf_panel(ts(reg_res, frequency = 12), "(b) ACF of regression residuals", 36, seasonal = FALSE) +
         coord_cartesian(ylim = c(-0.2, 1)))
@@ -531,12 +547,12 @@ save_fig(p, "fig09_regression_residuals")
 zdf <- data.frame(Date = dates, z = z)
 odf <- zdf[out_idx, ]; odf$lab <- format(odf$Date, "%b %Y")
 p1 <- ggplot(zdf, aes(Date, z)) + geom_hline(yintercept = 0, colour = ink2, linewidth = 0.3) +
-  geom_hline(yintercept = c(-3, 3), colour = c_orange, linetype = "dashed", linewidth = 0.5) +
+  geom_hline(yintercept = c(-3, 3), colour = c_ref, linetype = "dashed", linewidth = 0.45) +
   geom_line(colour = c_blue, linewidth = 0.35) +
   geom_point(data = odf, colour = c_red, size = 2) +
   geom_text_repel(data = odf, aes(label = lab), size = 3, colour = ink, min.segment.length = 0, seed = 1,
                   nudge_y = ifelse(odf$z > 0, 0.6, -0.6), segment.colour = ink2) +
-  scale_x_date(date_breaks = "10 years", date_labels = "%Y") +
+  scale_x_date(breaks = decade_breaks, date_labels = "%Y") +
   scale_y_continuous(expand = expansion(mult = 0.15)) +
   labs(title = "(a) Standardized residuals", x = NULL, y = "Residual / SD") + theme_slide()
 p2 <- acf_panel(ts(e, frequency = 12), "(b) ACF of residuals", 36) + coord_cartesian(ylim = c(-0.2, 0.2))
@@ -549,7 +565,7 @@ p4 <- ggplot(zdf, aes(sample = z)) + stat_qq(colour = c_blue, size = 0.9) + stat
 save_fig((p1 | p2) / (p3 | p4), "fig10_final_model_residual_diagnostics", h = 6.5)
 
 p <- ggplot(lb_lags, aes(lag, p, colour = model, shape = model)) +
-  geom_hline(yintercept = 0.05, colour = c_orange, linetype = "dashed", linewidth = 0.6) +
+  geom_hline(yintercept = 0.05, colour = c_ref, linetype = "dashed", linewidth = 0.5) +
   geom_point(size = 2.2) +
   scale_colour_manual(values = c(c_blue, c_grey)) + scale_shape_manual(values = c(16, 1)) +
   annotate("text", x = 36, y = 0.05, label = "p = 0.05", hjust = 1, vjust = -0.6, size = 3.6, colour = ink2) +
@@ -597,7 +613,7 @@ p <- ggplot() +
   scale_fill_manual(values = c("80% prediction interval" = c_blue, "95% prediction interval" = c_blue),
                     breaks = c("80% prediction interval", "95% prediction interval")) +
   guides(fill = guide_legend(override.aes = list(alpha = c(0.45, 0.2)))) +
-  scale_x_date(date_breaks = "2 years", date_labels = "%Y", expand = expansion(mult = c(0.01, 0.1))) +
+  scale_x_date(breaks = as.Date(paste0(seq(2018, 2030, 2), "-01-01")), date_labels = "%Y", expand = expansion(mult = c(0.01, 0.1))) +
   labs(x = NULL, y = expression(CO[2] ~ "(ppm)")) + theme_slide()
 save_fig(p, "fig13_forecast_to_2030")
 
@@ -616,7 +632,7 @@ rt$final <- grepl("Seasonal ARIMA", rt$Method)
 p <- ggplot(rt, aes(RMSE, Method, fill = final)) +
   geom_col(width = 0.6, show.legend = FALSE) +
   geom_text(aes(label = paste0(f(RMSE, 3), "  (", f(Coverage, 1), "% coverage)")), hjust = -0.05, size = 3.8, colour = ink) +
-  scale_fill_manual(values = c(`TRUE` = c_blue, `FALSE` = "#9ec5f4")) +
+  scale_fill_manual(values = c(`TRUE` = c_blue, `FALSE` = "grey75")) +
   scale_x_continuous(expand = expansion(mult = c(0, 0.45))) +
   labs(x = "RMSE of 12-month-ahead forecasts (ppm), 23 forecast origins 2000-2022", y = NULL) + theme_slide() +
   theme(panel.grid.major.y = element_blank())
@@ -633,8 +649,8 @@ fam_acf <- do.call(rbind, lapply(seq_along(fam_list), function(i) {
 fam_acf$panel <- factor(fam_acf$panel, levels = unique(fam_acf$panel))
 p <- ggplot(fam_acf, aes(lag, r)) +
   geom_hline(yintercept = 0, colour = ink2, linewidth = 0.3) +
-  geom_hline(aes(yintercept = b), colour = c_orange, linetype = "dashed", linewidth = 0.45) +
-  geom_hline(aes(yintercept = -b), colour = c_orange, linetype = "dashed", linewidth = 0.45) +
+  geom_hline(aes(yintercept = b), colour = c_ref, linetype = "dashed", linewidth = 0.45) +
+  geom_hline(aes(yintercept = -b), colour = c_ref, linetype = "dashed", linewidth = 0.45) +
   geom_segment(aes(xend = lag, yend = 0, colour = seas), linewidth = 0.7, show.legend = FALSE) +
   geom_point(aes(colour = seas), size = 1.1, show.legend = FALSE) +
   scale_colour_manual(values = c(`FALSE` = c_blue, `TRUE` = c_red)) +
