@@ -1,0 +1,12 @@
+
+\begin{tabular}[t]{lrrrr}
+\toprule
+Method & RMSE & MAE & 95\% PI coverage (\%) & Forecasts\\
+\midrule
+Holt-Winters (additive) & 0.543 & 0.403 & 96.0 & 276\\
+Seasonal ARIMA(0,1,1)×(0,1,1)[12] & 0.552 & 0.411 & 96.0 & 276\\
+Regression with ARMA errors & 0.580 & 0.445 & 93.8 & 276\\
+ARMA for W\_t (no seasonal MA term) & 0.677 & 0.521 & 94.9 & 276\\
+Non-seasonal ARIMA with drift & 0.697 & 0.543 & 97.5 & 276\\
+\bottomrule
+\end{tabular}

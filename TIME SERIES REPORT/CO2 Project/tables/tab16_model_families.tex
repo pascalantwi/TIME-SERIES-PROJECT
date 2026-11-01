@@ -1,0 +1,11 @@
+
+\begin{tabular}[t]{llrrrrrr}
+\toprule
+Family & Model & Parameters & Residual ACF lag 12 & Ljung-Box Q(12) p & Ljung-Box Q(24) p & Hold-out RMSE & Hold-out 95\% coverage (\%)\\
+\midrule
+ARMA (Notes 7-9) & ARMA(3,2) for W\_t & 5 & -0.409 & < 0.001 & < 0.001 & 0.655 & 100.0\\
+ARIMA (Note 10) & ARIMA(4,1,4) with drift & 8 & 0.180 & < 0.001 & < 0.001 & 2.127 & 100.0\\
+Regression with ARMA errors (Note 12) & Trend + dummies, ARMA(2,1) errors & 3 & 0.138 & < 0.001 & < 0.001 & 1.207 & 55.6\\
+Seasonal ARIMA (Note 11) & ARIMA(0,1,1)×(0,1,1)[12] & 2 & -0.005 & 0.464 & 0.532 & 1.110 & 97.2\\
+\bottomrule
+\end{tabular}

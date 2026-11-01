@@ -1,4 +1,4 @@
-\begin{thebibliography}{10}
+\begin{thebibliography}{8}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
@@ -16,12 +16,6 @@ David~A. Dickey and Wayne~A. Fuller.
   unit root.
 \newblock \emph{Journal of the American Statistical Association}, 74\penalty0
   (366):\penalty0 427--431, 1979.
-
-\bibitem[Hyndman and Khandakar(2008)]{hyndman2008}
-Rob~J. Hyndman and Yeasmin Khandakar.
-\newblock Automatic time series forecasting: The forecast package for {R}.
-\newblock \emph{Journal of Statistical Software}, 27\penalty0 (3):\penalty0
-  1--22, 2008.
 
 \bibitem[Jia(2026)]{jia2026}
 Y.~Jia.
@@ -50,11 +44,6 @@ Gideon Schwarz.
 \newblock Estimating the dimension of a model.
 \newblock \emph{The Annals of Statistics}, 6\penalty0 (2):\penalty0 461--464,
   1978.
-
-\bibitem[Shapiro and Wilk(1965)]{shapiro1965}
-Samuel~S. Shapiro and Martin~B. Wilk.
-\newblock An analysis of variance test for normality (complete samples).
-\newblock \emph{Biometrika}, 52\penalty0 (3/4):\penalty0 591--611, 1965.
 
 \bibitem[Winters(1960)]{winters1960}
 Peter~R. Winters.

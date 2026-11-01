@@ -263,14 +263,88 @@ pr <- predict(reg_tr, nd, interval = "prediction", level = 0.95)
 fc_sn <- snaive(tr, h = H, level = 95)
 acc <- function(fc, lo, hi) c(RMSE = sqrt(mean((te - fc)^2)), MAE = mean(abs(te - fc)),
                               MAPE = 100 * mean(abs((te - fc) / te)), Coverage = 100 * mean(te >= lo & te <= hi))
+# ---- 10a. The four model families of the course, compared -------------------------
+# ARMA (Notes 7-9) for W_t, ARIMA (Note 10) for X_t, regression with ARMA errors (Note 12),
+# seasonal ARIMA (Note 11). Within each family the order is chosen by SBC.
+grid_fit <- function(maxp, maxq, fitter) {
+  best <- NULL
+  for (p in 0:maxp) for (q in 0:maxq) {
+    fit <- tryCatch(fitter(p, q), error = function(e) NULL)
+    if (!is.null(fit) && (is.null(best) || BIC(fit) < BIC(best$fit))) best <- list(fit = fit, p = p, q = q)
+  }
+  best
+}
+fam_arma  <- grid_fit(3, 3, function(p, q) Arima(dd, order = c(p, 0, q), include.mean = FALSE, method = "ML"))
+fam_arima <- grid_fit(4, 4, function(p, q) Arima(x, order = c(p, 1, q), include.drift = TRUE, method = "ML"))
+fam_reg   <- grid_fit(3, 3, function(p, q) Arima(x, order = c(p, 0, q), xreg = Xreg, method = "ML"))
+ar_roots <- function(fit) { a <- coef(fit)[grepl("^ar", names(coef(fit)))]; if (length(a)) polyroot(c(1, -a)) else complex(0) }
+fam_arima_roots <- ar_roots(fam_arima$fit)
+keep("fam_arima_order", c(fam_arima$p, fam_arima$q)); keep("fam_arima_root_mod", Mod(fam_arima_roots))
+keep("fam_arima_root_period", 2 * pi / abs(Arg(fam_arima_roots)))
+keep("fam_reg_order", c(fam_reg$p, fam_reg$q)); keep("fam_reg_root_mod", Mod(ar_roots(fam_reg$fit)))
+keep("fam_arma_order", c(fam_arma$p, fam_arma$q))
+
+ntr <- length(tr)
+fc_fam_arma  <- forecast(Arima(tr, order = c(fam_arma$p, 1, fam_arma$q), seasonal = c(0, 1, 0), method = "ML"), h = H, level = 95)
+fc_fam_arima <- forecast(Arima(tr, order = c(fam_arima$p, 1, fam_arima$q), include.drift = TRUE, method = "ML"), h = H, level = 95)
+fc_fam_reg   <- forecast(Arima(tr, order = c(fam_reg$p, 0, fam_reg$q), xreg = Xreg[1:ntr, ], method = "ML"),
+                         xreg = Xreg[(ntr + 1):n, ], level = 95)
+fam_list <- list(
+  list(family = "ARMA (Notes 7-9)", model = sprintf("ARMA(%d,%d) for W_t", fam_arma$p, fam_arma$q),
+       fit = fam_arma$fit, k = fam_arma$p + fam_arma$q, fc = fc_fam_arma),
+  list(family = "ARIMA (Note 10)", model = sprintf("ARIMA(%d,1,%d) with drift", fam_arima$p, fam_arima$q),
+       fit = fam_arima$fit, k = fam_arima$p + fam_arima$q, fc = fc_fam_arima),
+  list(family = "Regression with ARMA errors (Note 12)", model = sprintf("Trend + dummies, ARMA(%d,%d) errors", fam_reg$p, fam_reg$q),
+       fit = fam_reg$fit, k = fam_reg$p + fam_reg$q, fc = fc_fam_reg),
+  list(family = "Seasonal ARIMA (Note 11)", model = "ARIMA(0,1,1)×(0,1,1)[12]", fit = fit_ml, k = 2, fc = fc_ar))
+fam_tab <- do.call(rbind, lapply(fam_list, function(m) {
+  e <- as.numeric(resid(m$fit)); e <- e[!is.na(e)]
+  data.frame(Family = m$family, Model = m$model, Parameters = m$k,
+             ACF12 = acf(e, 12, plot = FALSE)$acf[13],
+             LB12_p = Box.test(e, 12, "Ljung-Box", fitdf = m$k)$p.value,
+             LB24_p = Box.test(e, 24, "Ljung-Box", fitdf = m$k)$p.value,
+             RMSE = sqrt(mean((te - m$fc$mean)^2)),
+             Coverage = 100 * mean(te >= m$fc$lower & te <= m$fc$upper))
+}))
+keep("fam_tab", fam_tab)
+
 acc_tab <- rbind(
   "Final: ARIMA(0,1,1)×(0,1,1)[12]" = acc(fc_ar$mean, fc_ar$lower, fc_ar$upper),
+  "ARMA for W_t (no seasonal MA term)" = acc(fc_fam_arma$mean, fc_fam_arma$lower, fc_fam_arma$upper),
+  "Non-seasonal ARIMA with drift" = acc(fc_fam_arima$mean, fc_fam_arima$lower, fc_fam_arima$upper),
+  "Regression with ARMA errors" = acc(fc_fam_reg$mean, fc_fam_reg$lower, fc_fam_reg$upper),
   "Alternative: ARIMA(1,1,1)×(0,1,1)[12]" = acc(fc_ai$mean, fc_ai$lower, fc_ai$upper),
   "Holt-Winters (additive)" = acc(fc_hw$mean, fc_hw$lower, fc_hw$upper),
   "Regression: quadratic trend + seasonal dummies" = acc(pr[, 1], pr[, 2], pr[, 3]),
   "Seasonal naive" = acc(fc_sn$mean, fc_sn$lower, fc_sn$upper)
 )
 keep("acc", acc_tab); keep("test_start", ym(tm[n - H + 1])); keep("test_end", ym(tm[n]))
+
+# ---- 10b. Rolling-origin evaluation: 12-month forecasts from each August 2000-2022 -------
+roll_h <- 12
+origins <- which(raw$Month %in% sprintf("%d-08", 2000:2022))
+roll_err <- list(); roll_cov <- list()
+for (o in origins) {
+  tr_o <- ts(x[1:o], start = c(1958, 3), frequency = 12); te_o <- x[(o + 1):(o + roll_h)]
+  fcs <- list(
+    "Seasonal ARIMA(0,1,1)×(0,1,1)[12]" = forecast(Arima(tr_o, order = c(0, 1, 1), seasonal = c(0, 1, 1)), h = roll_h, level = 95),
+    "Holt-Winters (additive)" = forecast(suppressWarnings(HoltWinters(tr_o)), h = roll_h, level = 95),
+    "Regression with ARMA errors" = forecast(Arima(tr_o, order = c(fam_reg$p, 0, fam_reg$q), xreg = Xreg[1:o, ], method = "ML"),
+                                             xreg = Xreg[(o + 1):(o + roll_h), ], level = 95),
+    "ARMA for W_t (no seasonal MA term)" = forecast(Arima(tr_o, order = c(fam_arma$p, 1, fam_arma$q), seasonal = c(0, 1, 0), method = "ML"),
+                                                    h = roll_h, level = 95),
+    "Non-seasonal ARIMA with drift" = tryCatch(forecast(Arima(tr_o, order = c(fam_arima$p, 1, fam_arima$q), include.drift = TRUE,
+                                                             method = "ML"), h = roll_h, level = 95), error = function(e) NULL))
+  for (m in names(fcs)) if (!is.null(fcs[[m]])) {
+    roll_err[[m]] <- c(roll_err[[m]], te_o - fcs[[m]]$mean)
+    roll_cov[[m]] <- c(roll_cov[[m]], te_o >= fcs[[m]]$lower & te_o <= fcs[[m]]$upper)
+  }
+}
+roll_tab <- data.frame(Method = names(roll_err),
+                       RMSE = sapply(roll_err, function(e) sqrt(mean(e^2))), MAE = sapply(roll_err, function(e) mean(abs(e))),
+                       Coverage = 100 * sapply(roll_cov, mean), Forecasts = sapply(roll_err, length))
+roll_tab <- roll_tab[order(roll_tab$RMSE), ]
+keep("roll_tab", roll_tab); keep("roll_n_origins", length(origins))
 
 # ---- 11. Forecasts to December 2030 ------------------------------------------------
 h_end <- (2030 - 2026) * 12 + (12 - 8)
@@ -526,6 +600,49 @@ p <- ggplot() +
   scale_x_date(date_breaks = "2 years", date_labels = "%Y", expand = expansion(mult = c(0.01, 0.1))) +
   labs(x = NULL, y = expression(CO[2] ~ "(ppm)")) + theme_slide()
 save_fig(p, "fig13_forecast_to_2030")
+
+save_tab(data.frame(Family = fam_tab$Family, Model = fam_tab$Model, Parameters = fam_tab$Parameters,
+                    `Residual ACF lag 12` = f(fam_tab$ACF12, 3), `Ljung-Box Q(12) p` = fp(fam_tab$LB12_p),
+                    `Ljung-Box Q(24) p` = fp(fam_tab$LB24_p), `Hold-out RMSE` = f(fam_tab$RMSE, 3),
+                    `Hold-out 95% coverage (%)` = f(fam_tab$Coverage, 1), check.names = FALSE),
+         "tab16_model_families", "llrrrrrr")
+
+save_tab(data.frame(Method = roll_tab$Method, RMSE = f(roll_tab$RMSE, 3), MAE = f(roll_tab$MAE, 3),
+                    `95% PI coverage (%)` = f(roll_tab$Coverage, 1), Forecasts = roll_tab$Forecasts, check.names = FALSE),
+         "tab17_rolling_origin_accuracy", "lrrrr")
+
+rt <- roll_tab; rt$Method <- factor(rt$Method, levels = rev(rt$Method))
+rt$final <- grepl("Seasonal ARIMA", rt$Method)
+p <- ggplot(rt, aes(RMSE, Method, fill = final)) +
+  geom_col(width = 0.6, show.legend = FALSE) +
+  geom_text(aes(label = paste0(f(RMSE, 3), "  (", f(Coverage, 1), "% coverage)")), hjust = -0.05, size = 3.8, colour = ink) +
+  scale_fill_manual(values = c(`TRUE` = c_blue, `FALSE` = "#9ec5f4")) +
+  scale_x_continuous(expand = expansion(mult = c(0, 0.45))) +
+  labs(x = "RMSE of 12-month-ahead forecasts (ppm), 23 forecast origins 2000-2022", y = NULL) + theme_slide() +
+  theme(panel.grid.major.y = element_blank())
+save_fig(p, "fig15_rolling_origin_accuracy", h = 4.2)
+
+fam_acf <- do.call(rbind, lapply(seq_along(fam_list), function(i) {
+  e <- as.numeric(resid(fam_list[[i]]$fit)); e <- e[!is.na(e)]
+  a <- acf(e, 36, plot = FALSE)$acf[-1]
+  notes <- c("Notes 7-9", "Note 10", "Note 12", "Note 11")
+  short <- c(fam_list[[1]]$model, fam_list[[2]]$model, sprintf("Regression + ARMA(%d,%d) errors", fam_reg$p, fam_reg$q), fam_list[[4]]$model)
+  data.frame(panel = paste0("(", letters[i], ") ", short[i], " [", notes[i], "]"),
+             lag = 1:36, r = a, seas = (1:36) %% 12 == 0, b = 1.96 / sqrt(length(e)))
+}))
+fam_acf$panel <- factor(fam_acf$panel, levels = unique(fam_acf$panel))
+p <- ggplot(fam_acf, aes(lag, r)) +
+  geom_hline(yintercept = 0, colour = ink2, linewidth = 0.3) +
+  geom_hline(aes(yintercept = b), colour = c_orange, linetype = "dashed", linewidth = 0.45) +
+  geom_hline(aes(yintercept = -b), colour = c_orange, linetype = "dashed", linewidth = 0.45) +
+  geom_segment(aes(xend = lag, yend = 0, colour = seas), linewidth = 0.7, show.legend = FALSE) +
+  geom_point(aes(colour = seas), size = 1.1, show.legend = FALSE) +
+  scale_colour_manual(values = c(`FALSE` = c_blue, `TRUE` = c_red)) +
+  scale_x_continuous(breaks = seq(0, 36, 12)) +
+  facet_wrap(~panel, ncol = 2) +
+  labs(x = "Lag (months)", y = "Residual ACF") + theme_slide(12) +
+  theme(strip.text = element_text(face = "bold", hjust = 0, colour = ink, size = rel(0.85)))
+save_fig(p, "fig14_residual_acf_by_model_family", h = 6)
 
 # ---- Key values used in the report ----------------------------------------------
 sink("results/key_values.txt")

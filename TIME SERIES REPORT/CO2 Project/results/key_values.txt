@@ -422,25 +422,78 @@ sma12 0.83682490 0.9030394
 == arima_rmse_in ==
 [1] 0.3152747
 
+== fam_arima_order ==
+[1] 4 4
+
+== fam_arima_root_mod ==
+[1] 1.000501 1.000002 1.000501 1.000002
+
+== fam_arima_root_period ==
+[1]  5.998376 11.996803  5.998376 11.996803
+
+== fam_reg_order ==
+[1] 2 1
+
+== fam_reg_root_mod ==
+[1] 1.021516 1.903665
+
+== fam_arma_order ==
+[1] 3 2
+
+== fam_tab ==
+                                 Family                             Model
+1                      ARMA (Notes 7-9)                 ARMA(3,2) for W_t
+2                       ARIMA (Note 10)           ARIMA(4,1,4) with drift
+3 Regression with ARMA errors (Note 12) Trend + dummies, ARMA(2,1) errors
+4              Seasonal ARIMA (Note 11)          ARIMA(0,1,1)×(0,1,1)[12]
+  Parameters        ACF12       LB12_p       LB24_p      RMSE  Coverage
+1          5 -0.408738007 0.0000000000 0.000000e+00 0.6549678 100.00000
+2          8  0.180029706 0.0000000000 0.000000e+00 2.1268896 100.00000
+3          3  0.138473334 0.0006649424 4.074855e-06 1.2067068  55.55556
+4          2 -0.004630408 0.4635873278 5.315694e-01 1.1097678  97.22222
+
 == acc ==
-                                                   RMSE       MAE      MAPE
-Final: ARIMA(0,1,1)×(0,1,1)[12]                1.109768 1.0098993 0.2366829
-Alternative: ARIMA(1,1,1)×(0,1,1)[12]          1.167648 1.0720669 0.2512629
-Holt-Winters (additive)                        0.981410 0.8753916 0.2052036
-Regression: quadratic trend + seasonal dummies 1.491263 1.4130231 0.3313568
-Seasonal naive                                 6.448212 6.0688889 1.4215790
-                                               Coverage
-Final: ARIMA(0,1,1)×(0,1,1)[12]                97.22222
-Alternative: ARIMA(1,1,1)×(0,1,1)[12]          83.33333
-Holt-Winters (additive)                        97.22222
-Regression: quadratic trend + seasonal dummies 52.77778
-Seasonal naive                                 25.00000
+                                                    RMSE       MAE      MAPE
+Final: ARIMA(0,1,1)×(0,1,1)[12]                1.1097678 1.0098993 0.2366829
+ARMA for W_t (no seasonal MA term)             0.6549678 0.5006995 0.1172852
+Non-seasonal ARIMA with drift                  2.1268896 1.9301636 0.4517888
+Regression with ARMA errors                    1.2067068 1.1132182 0.2609780
+Alternative: ARIMA(1,1,1)×(0,1,1)[12]          1.1676482 1.0720669 0.2512629
+Holt-Winters (additive)                        0.9814100 0.8753916 0.2052036
+Regression: quadratic trend + seasonal dummies 1.4912634 1.4130231 0.3313568
+Seasonal naive                                 6.4482125 6.0688889 1.4215790
+                                                Coverage
+Final: ARIMA(0,1,1)×(0,1,1)[12]                 97.22222
+ARMA for W_t (no seasonal MA term)             100.00000
+Non-seasonal ARIMA with drift                  100.00000
+Regression with ARMA errors                     55.55556
+Alternative: ARIMA(1,1,1)×(0,1,1)[12]           83.33333
+Holt-Winters (additive)                         97.22222
+Regression: quadratic trend + seasonal dummies  52.77778
+Seasonal naive                                  25.00000
 
 == test_start ==
 [1] "Sep 2023"
 
 == test_end ==
 [1] "Aug 2026"
+
+== roll_tab ==
+                                                               Method      RMSE
+Holt-Winters (additive)                       Holt-Winters (additive) 0.5430453
+Seasonal ARIMA(0,1,1)×(0,1,1)[12]   Seasonal ARIMA(0,1,1)×(0,1,1)[12] 0.5523143
+Regression with ARMA errors               Regression with ARMA errors 0.5797048
+ARMA for W_t (no seasonal MA term) ARMA for W_t (no seasonal MA term) 0.6770896
+Non-seasonal ARIMA with drift           Non-seasonal ARIMA with drift 0.6972967
+                                         MAE Coverage Forecasts
+Holt-Winters (additive)            0.4031091 96.01449       276
+Seasonal ARIMA(0,1,1)×(0,1,1)[12]  0.4111955 96.01449       276
+Regression with ARMA errors        0.4447936 93.84058       276
+ARMA for W_t (no seasonal MA term) 0.5208828 94.92754       276
+Non-seasonal ARIMA with drift      0.5427777 97.46377       276
+
+== roll_n_origins ==
+[1] 23
 
 == fc_first ==
      Month Forecast  Lower80  Upper80  Lower95  Upper95 HoltWinters

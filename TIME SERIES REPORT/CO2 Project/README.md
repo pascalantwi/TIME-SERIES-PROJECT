@@ -4,6 +4,8 @@ STA6938 Time Series. Data: NOAA Global Monitoring Laboratory, 822 monthly means,
 
 **Final model:** ARIMA(0,1,1)×(0,1,1)₁₂, θ̂₁ = 0.389, Θ̂₁ = 0.870. **Headline forecast:** CO₂ first exceeds 440 ppm in April 2030.
 
+**Model families compared (all covered in class):** ARMA (Notes 7–9), ARIMA (Note 10), seasonal ARIMA (Note 11) and regression with autocorrelated errors (Note 12), plus exponential smoothing (Note 5). Only the seasonal ARIMA leaves white-noise residuals, and it is the most accurate of the four families in the rolling-origin evaluation.
+
 ## Folder contents
 
 | Path | What it is |
@@ -11,8 +13,8 @@ STA6938 Time Series. Data: NOAA Global Monitoring Laboratory, 822 monthly means,
 | `report/main.pdf` | **The report** (5 pages; text, values and interpretation only, with no tables or figures, as the professor requires) |
 | `report/main.tex`, `report/references.bib` | LaTeX source of the report |
 | `CO2_Report_LaTeX.zip` | The LaTeX report as a zip, ready to upload to Overleaf |
-| `figures/` | 13 figures for the slides: PNG (300 dpi) and PDF (vector) |
-| `tables/` | 15 tables for the slides: CSV (Excel/PowerPoint) and `.tex` (Beamer, `booktabs`) |
+| `figures/` | 15 figures for the slides: PNG (300 dpi) and PDF (vector) |
+| `tables/` | 17 tables for the slides: CSV (Excel/PowerPoint) and `.tex` (Beamer, `booktabs`) |
 | `R/co2_analysis.R` | The full analysis; regenerates every figure, table and number |
 | `results/key_values.txt` | Every number quoted in the report |
 | `data/CO2_MaunaLoa_monthly.csv` | The data |
@@ -34,6 +36,8 @@ STA6938 Time Series. Data: NOAA Global Monitoring Laboratory, 822 monthly means,
 | `fig11_ljung_box_pvalues` | Ljung–Box p-values by lag, final vs alternative model | 6. Adequacy |
 | `fig12_holdout_forecast_comparison` | 36-month hold-out: ARIMA vs Holt–Winters vs regression | 7. Forecasting |
 | `fig13_forecast_to_2030` | Forecast to December 2030 with 80% and 95% intervals | 7. Forecasting |
+| `fig14_residual_acf_by_model_family` | Residual ACF of the best ARMA, ARIMA, regression-with-ARMA-errors and seasonal ARIMA models | 4. Model families |
+| `fig15_rolling_origin_accuracy` | Rolling-origin RMSE and coverage (23 origins, 276 forecasts) | 7. Forecasting |
 
 ## Tables
 
@@ -54,6 +58,8 @@ STA6938 Time Series. Data: NOAA Global Monitoring Laboratory, 822 monthly means,
 | `tab13_holdout_accuracy` | Hold-out RMSE, MAE, MAPE and interval coverage |
 | `tab14_forecasts_selected` / `tab14_forecasts_full` | Forecasts and prediction intervals to December 2030 |
 | `tab15_regression_autocorrelated_errors` | Regression with ARMA errors (Note 12): AR coefficients near a unit root |
+| `tab16_model_families` | The four course model families compared: residual checks and hold-out accuracy |
+| `tab17_rolling_origin_accuracy` | Rolling-origin forecast accuracy (23 origins, 12 months ahead) |
 
 To use a table in Beamer, put `\usepackage{booktabs}` and `\usepackage[utf8]{inputenc}` in the preamble and `\input{tables/tab13_holdout_accuracy.tex}` on the slide.
 
