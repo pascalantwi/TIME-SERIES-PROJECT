@@ -4,7 +4,7 @@ STA6938 Time Series. Data: NOAA Global Monitoring Laboratory, 822 monthly means,
 
 **Final model:** ARIMA(0,1,1)×(0,1,1)₁₂, θ̂₁ = 0.389, Θ̂₁ = 0.870. **Headline forecast:** CO₂ first exceeds 440 ppm in April 2030.
 
-**Model families compared (all covered in class):** ARMA (Notes 7–9), ARIMA (Note 10), seasonal ARIMA (Note 11) and regression with autocorrelated errors (Note 12), plus exponential smoothing (Note 5). Only the seasonal ARIMA leaves white-noise residuals, and it is the most accurate of the four families in the rolling-origin evaluation.
+**Model families compared:** ARMA, ARIMA, seasonal ARIMA and regression with autocorrelated errors, plus exponential smoothing. Only the seasonal ARIMA leaves white-noise residuals, and it is the most accurate of the four families in the rolling-origin evaluation.
 
 ## Folder contents
 
@@ -57,8 +57,8 @@ STA6938 Time Series. Data: NOAA Global Monitoring Laboratory, 822 monthly means,
 | `tab12_holt_winters_parameters` | Holt–Winters α, β, γ, level and slope |
 | `tab13_holdout_accuracy` | Hold-out RMSE, MAE, MAPE and interval coverage |
 | `tab14_forecasts_selected` / `tab14_forecasts_full` | Forecasts and prediction intervals to December 2030 |
-| `tab15_regression_autocorrelated_errors` | Regression with ARMA errors (Note 12): AR coefficients near a unit root |
-| `tab16_model_families` | The four course model families compared: residual checks and hold-out accuracy |
+| `tab15_regression_autocorrelated_errors` | Regression with ARMA errors: AR coefficients near a unit root |
+| `tab16_model_families` | The four model families compared: residual checks and hold-out accuracy |
 | `tab17_rolling_origin_accuracy` | Rolling-origin forecast accuracy (23 origins, 12 months ahead) |
 
 To use a table in Beamer, put `\usepackage{booktabs}` and `\usepackage[utf8]{inputenc}` in the preamble and `\input{tables/tab13_holdout_accuracy.tex}` on the slide.

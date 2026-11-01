@@ -76,7 +76,7 @@ keep("n", n); keep("start", ym(tm[1])); keep("end", ym(tm[n]))
 keep("first", x[1]); keep("last", x[n]); keep("mean", mean(x)); keep("sd", sd(x))
 keep("min", min(x)); keep("min_date", ym(tm[which.min(x)])); keep("max", max(x)); keep("max_date", ym(tm[which.max(x)]))
 
-# ---- 2. Classical decomposition (Note 4) ------------------------------------
+# ---- 2. Classical decomposition ------------------------------------
 dec <- decompose(x, type = "additive")             # 2x12 moving-average trend filter
 seas_idx <- tapply(as.numeric(dec$seasonal), cycle(x), mean)
 names(seas_idx) <- month.abb
@@ -102,7 +102,7 @@ level_dec <- tapply(as.numeric(x), paste0(10 * floor(yr / 10), "s"), mean)
 keep("growth_1960s", growth_dec["1960s"]); keep("growth_2010s", growth_dec["2010s"]); keep("growth_2020s", growth_dec["2020s"])
 keep("growth_all", mean(d12))
 
-# ---- 3. Regression approach (Note 4): quadratic trend + seasonal dummies -------
+# ---- 3. Regression approach: quadratic trend + seasonal dummies -------
 tt <- seq_len(n); M <- factor(cycle(x), labels = month.abb[c(1:12)])
 reg <- lm(as.numeric(x) ~ tt + I(tt^2) + M)
 reg_res <- resid(reg)
@@ -110,9 +110,9 @@ keep("reg_r2", summary(reg)$r.squared); keep("reg_sigma", summary(reg)$sigma)
 keep("reg_b1", coef(reg)["tt"]); keep("reg_b2", coef(reg)["I(tt^2)"])
 keep("reg_res_acf1", acf(reg_res, 1, plot = FALSE)$acf[2])
 keep("reg_lb12", Box.test(reg_res, 12, "Ljung-Box")$statistic)
-keep("reg_dw", sum(diff(reg_res)^2) / sum(reg_res^2))           # Durbin-Watson (Note 12)
+keep("reg_dw", sum(diff(reg_res)^2) / sum(reg_res^2))           # Durbin-Watson
 
-# Regression with autocorrelated (ARMA) errors (Note 12); time rescaled to (0, 1]
+# Regression with autocorrelated (ARMA) errors; time rescaled to (0, 1]
 Xreg <- cbind(t = seq_len(n) / n, t2 = (seq_len(n) / n)^2, seasonaldummy(x))
 reg_arma <- lapply(list(c(1, 0, 0), c(2, 0, 0), c(2, 0, 1)), function(o) {
   fit <- Arima(x, order = o, xreg = Xreg, method = "ML")
@@ -124,7 +124,7 @@ reg_arma <- lapply(list(c(1, 0, 0), c(2, 0, 0), c(2, 0, 1)), function(o) {
 reg_arma <- do.call(rbind, reg_arma)
 keep("reg_arma", reg_arma)
 
-# ---- 4. Stationarity: ACF and ADF (Notes 3-4) --------------------------------
+# ---- 4. Stationarity: ACF and ADF --------------------------------
 d1 <- diff(x); dd <- diff(d12)
 sa <- x - dec$seasonal
 adf_row <- function(series, label, type, lags) {
@@ -156,7 +156,7 @@ keep("acf_d12_1", acf_d12[2]); keep("acf_d12_2", acf_d12[3]); keep("acf_d12_3", 
 g_d0 <- Arima(x, order = c(1, 0, 1), seasonal = c(0, 1, 1), include.drift = TRUE, method = "ML")
 keep("phi_d0", coef(g_d0)["ar1"]); keep("phi_d0_se", sqrt(diag(g_d0$var.coef))["ar1"])
 
-# ---- 5. White-noise tests on the differenced series (Note 6) -----------------
+# ---- 5. White-noise tests on the differenced series -----------------
 wn_dd <- lb(dd)
 keep("lb_dd", wn_dd)
 acf_dd <- acf(dd, 48, plot = FALSE)$acf[-1]; pacf_dd <- pacf(dd, 48, plot = FALSE)$acf
@@ -164,7 +164,7 @@ keep("acf_dd_1", acf_dd[1]); keep("acf_dd_11", acf_dd[11]); keep("acf_dd_12", ac
 keep("pacf_dd_1", pacf_dd[1]); keep("pacf_dd_12", pacf_dd[12]); keep("pacf_dd_24", pacf_dd[24]); keep("pacf_dd_36", pacf_dd[36])
 keep("bound_dd", 1.96 / sqrt(length(dd))); keep("n_dd", length(dd))
 
-# ---- 6. Candidate ARIMA models (Notes 7-9), ML estimation ---------------------
+# ---- 6. Candidate ARIMA models, ML estimation ---------------------
 cands <- list(c(0,1,1,0,1,1), c(1,1,0,0,1,1), c(1,1,1,0,1,1), c(0,1,2,0,1,1), c(2,1,0,0,1,1),
               c(0,1,1,1,1,1), c(0,1,1,0,1,2), c(0,1,1,1,1,0), c(1,1,1,1,1,1))
 cand <- do.call(rbind, lapply(cands, function(o) {
@@ -179,12 +179,12 @@ cand$dSBC <- cand$SBC - min(cand$SBC)
 keep("cand", cand)
 
 # ---- 7. Final model ARIMA(0,1,1)×(0,1,1)[12]; alternative ARIMA(1,1,1)×(0,1,1)[12] ------
-# Course sign convention: MA terms enter as (1 - theta B), so theta = -(R's ma coefficient);
+# Box-Jenkins sign convention: MA terms enter as (1 - theta B), so theta = -(R's ma coefficient);
 # AR terms enter as (1 - phi B), the same sign R reports.
-course_sign <- function(fit) { b <- coef(fit); ma <- grepl("ma", names(b)); b[ma] <- -b[ma]; b }
+bj_sign <- function(fit) { b <- coef(fit); ma <- grepl("ma", names(b)); b[ma] <- -b[ma]; b }
 par_label <- c(ar1 = "phi_1 (AR(1))", ma1 = "theta_1 (MA(1))", sma1 = "Theta_1 (seasonal MA(1))")
 est_tab <- function(fit, model, method) {
-  b <- course_sign(fit); se <- sqrt(diag(fit$var.coef)); z <- b / se
+  b <- bj_sign(fit); se <- sqrt(diag(fit$var.coef)); z <- b / se
   data.frame(Model = model, Method = method, Parameter = par_label[names(b)],
              Estimate = b, SE = se, z = z, p = 2 * pnorm(-abs(z)), Lower95 = b - 1.96 * se, Upper95 = b + 1.96 * se)
 }
@@ -197,7 +197,7 @@ est <- rbind(est_tab(fit_ml, "Final: ARIMA(0,1,1)×(0,1,1)[12]", "Maximum likeli
 keep("est", est); keep("sigma2_ml", fit_ml$sigma2); keep("sigma2_css", fit_css$sigma2); keep("sigma2_alt", fit_alt$sigma2)
 keep("loglik", as.numeric(logLik(fit_ml))); keep("aic", AIC(fit_ml)); keep("sbc", BIC(fit_ml))
 keep("aic_alt", AIC(fit_alt)); keep("sbc_alt", BIC(fit_alt))
-th <- course_sign(fit_ml); th_alt <- course_sign(fit_alt)
+th <- bj_sign(fit_ml); th_alt <- bj_sign(fit_alt)
 keep("root_ma", 1 / th["ma1"]); keep("root_sma", (1 / th["sma1"])^(1 / 12))
 keep("root_ar_alt", 1 / th_alt["ar1"]); keep("root_ma_alt", 1 / th_alt["ma1"])
 # Autocorrelations of the differenced series implied by the fitted model
@@ -206,7 +206,7 @@ keep("rho13_model", th[1] * th[2] / ((1 + th[1]^2) * (1 + th[2]^2)))
 # pi weights of the invertible form (1 - theta B)^-1 (1 - Theta B^12)^-1 for the differenced series
 keep("pi_1_3", th[1]^(1:3)); keep("pi_12", th[2])
 
-# ---- 8. Diagnostics (Notes 7-9) -----------------------------------------------
+# ---- 8. Diagnostics -----------------------------------------------
 e <- as.numeric(resid(fit_ml)); z <- e / sqrt(fit_ml$sigma2)
 e_alt <- as.numeric(resid(fit_alt))
 keep("acf_final_1_6", round(acf(e, 6, plot = FALSE)$acf[2:7], 3))
@@ -235,7 +235,7 @@ x_na <- x; x_na[out_idx] <- NA
 fit_rob <- Arima(x_na, order = c(0, 1, 1), seasonal = c(0, 1, 1), method = "ML")
 e_rob <- as.numeric(resid(fit_rob)); e_rob <- e_rob[!is.na(e_rob)]
 diag_rob <- diag_tab(e_rob, "Outlying months set to missing")
-keep("diag_rob", diag_rob); keep("est_rob", course_sign(fit_rob)); keep("est_rob_se", sqrt(diag(fit_rob$var.coef)))
+keep("diag_rob", diag_rob); keep("est_rob", bj_sign(fit_rob)); keep("est_rob_se", sqrt(diag(fit_rob$var.coef)))
 keep("sigma2_rob", fit_rob$sigma2)
 lb_curve <- function(e, k, model) data.frame(lag = (k + 1):36, model = model,
   p = sapply((k + 1):36, function(h) Box.test(e, h, "Ljung-Box", fitdf = k)$p.value))
@@ -244,7 +244,7 @@ lb_lags$model <- factor(lb_lags$model, levels = unique(lb_lags$model))   # final
 fin_lb <- lb_lags[grepl("Final", lb_lags$model), ]
 keep("lb_min_p_final", min(fin_lb$p)); keep("lb_min_lag_final", fin_lb$lag[which.min(fin_lb$p)])
 
-# ---- 9. Holt-Winters (Note 5) ---------------------------------------------------
+# ---- 9. Holt-Winters ---------------------------------------------------
 hw <- HoltWinters(x, seasonal = "additive")
 keep("hw_alpha", hw$alpha); keep("hw_beta", hw$beta); keep("hw_gamma", hw$gamma)
 keep("hw_level", hw$coefficients["a"]); keep("hw_slope", hw$coefficients["b"])
@@ -263,9 +263,9 @@ pr <- predict(reg_tr, nd, interval = "prediction", level = 0.95)
 fc_sn <- snaive(tr, h = H, level = 95)
 acc <- function(fc, lo, hi) c(RMSE = sqrt(mean((te - fc)^2)), MAE = mean(abs(te - fc)),
                               MAPE = 100 * mean(abs((te - fc) / te)), Coverage = 100 * mean(te >= lo & te <= hi))
-# ---- 10a. The four model families of the course, compared -------------------------
-# ARMA (Notes 7-9) for W_t, ARIMA (Note 10) for X_t, regression with ARMA errors (Note 12),
-# seasonal ARIMA (Note 11). Within each family the order is chosen by SBC.
+# ---- 10a. The four model families, compared -------------------------
+# ARMA for W_t, ARIMA for X_t, regression with ARMA errors and
+# seasonal ARIMA. Within each family the order is chosen by SBC.
 grid_fit <- function(maxp, maxq, fitter) {
   best <- NULL
   for (p in 0:maxp) for (q in 0:maxq) {
@@ -290,13 +290,13 @@ fc_fam_arima <- forecast(Arima(tr, order = c(fam_arima$p, 1, fam_arima$q), inclu
 fc_fam_reg   <- forecast(Arima(tr, order = c(fam_reg$p, 0, fam_reg$q), xreg = Xreg[1:ntr, ], method = "ML"),
                          xreg = Xreg[(ntr + 1):n, ], level = 95)
 fam_list <- list(
-  list(family = "ARMA (Notes 7-9)", model = sprintf("ARMA(%d,%d) for W_t", fam_arma$p, fam_arma$q),
+  list(family = "ARMA", model = sprintf("ARMA(%d,%d) for W_t", fam_arma$p, fam_arma$q),
        fit = fam_arma$fit, k = fam_arma$p + fam_arma$q, fc = fc_fam_arma),
-  list(family = "ARIMA (Note 10)", model = sprintf("ARIMA(%d,1,%d) with drift", fam_arima$p, fam_arima$q),
+  list(family = "ARIMA", model = sprintf("ARIMA(%d,1,%d) with drift", fam_arima$p, fam_arima$q),
        fit = fam_arima$fit, k = fam_arima$p + fam_arima$q, fc = fc_fam_arima),
-  list(family = "Regression with ARMA errors (Note 12)", model = sprintf("Trend + dummies, ARMA(%d,%d) errors", fam_reg$p, fam_reg$q),
+  list(family = "Regression with ARMA errors", model = sprintf("Trend + dummies, ARMA(%d,%d) errors", fam_reg$p, fam_reg$q),
        fit = fam_reg$fit, k = fam_reg$p + fam_reg$q, fc = fc_fam_reg),
-  list(family = "Seasonal ARIMA (Note 11)", model = "ARIMA(0,1,1)×(0,1,1)[12]", fit = fit_ml, k = 2, fc = fc_ar))
+  list(family = "Seasonal ARIMA", model = "ARIMA(0,1,1)×(0,1,1)[12]", fit = fit_ml, k = 2, fc = fc_ar))
 fam_tab <- do.call(rbind, lapply(fam_list, function(m) {
   e <- as.numeric(resid(m$fit)); e <- e[!is.na(e)]
   data.frame(Family = m$family, Model = m$model, Parameters = m$k,
@@ -417,7 +417,7 @@ save_tab(data.frame(Test = diag_all$Test,
 save_tab(data.frame(Month = ym(tm[out_idx]), `Observed (ppm)` = f(x[out_idx]),
                     `Standardized residual` = f(z[out_idx])), "tab10_outlying_months", "lrr")
 
-rb <- course_sign(fit_rob)
+rb <- bj_sign(fit_rob)
 save_tab(data.frame(Data = c("All months", "Outlying months set to missing"),
                     theta_1 = f(c(th["ma1"], rb["ma1"]), 4), Theta_1 = f(c(th["sma1"], rb["sma1"]), 4),
                     sigma2 = f(c(fit_ml$sigma2, fit_rob$sigma2), 4)),
@@ -625,9 +625,9 @@ save_fig(p, "fig15_rolling_origin_accuracy", h = 4.2)
 fam_acf <- do.call(rbind, lapply(seq_along(fam_list), function(i) {
   e <- as.numeric(resid(fam_list[[i]]$fit)); e <- e[!is.na(e)]
   a <- acf(e, 36, plot = FALSE)$acf[-1]
-  notes <- c("Notes 7-9", "Note 10", "Note 12", "Note 11")
-  short <- c(fam_list[[1]]$model, fam_list[[2]]$model, sprintf("Regression + ARMA(%d,%d) errors", fam_reg$p, fam_reg$q), fam_list[[4]]$model)
-  data.frame(panel = paste0("(", letters[i], ") ", short[i], " [", notes[i], "]"),
+  short <- c(paste("ARMA:", fam_list[[1]]$model), paste("ARIMA:", fam_list[[2]]$model),
+             sprintf("Regression with ARMA(%d,%d) errors", fam_reg$p, fam_reg$q), paste("Seasonal ARIMA:", fam_list[[4]]$model))
+  data.frame(panel = paste0("(", letters[i], ") ", short[i]),
              lag = 1:36, r = a, seas = (1:36) %% 12 == 0, b = 1.96 / sqrt(length(e)))
 }))
 fam_acf$panel <- factor(fam_acf$panel, levels = unique(fam_acf$panel))
