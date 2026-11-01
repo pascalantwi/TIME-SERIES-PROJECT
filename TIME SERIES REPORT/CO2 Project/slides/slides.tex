@@ -1,0 +1,464 @@
+% =============================================================================
+%  STA6938 Time Series -- Final Project Presentation (15 minutes)
+%  Monthly Atmospheric CO2 at Mauna Loa, 1958--2026
+%  Compile: pdflatex slides   (speaker notes: pdflatex notes)
+% =============================================================================
+\documentclass[aspectratio=169,11pt,xcolor=table]{beamer}
+
+\ifdefined\shownotes
+  \setbeameroption{show only notes}
+\fi
+
+% ---- Theme -------------------------------------------------------------------
+\usetheme[progressbar=frametitle, numbering=fraction, sectionpage=none, block=fill]{metropolis}
+\usepackage{appendixnumberbeamer}
+
+% ---- Typography: Palatino, matching the report and figures ------------------
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[sc]{mathpazo}
+\usefonttheme{serif}
+\usepackage{microtype}
+\usepackage{amsmath, amssymb, booktabs, graphicx, tabularx, array}
+\graphicspath{{figures/slide/}{../figures/slide/}{figures/}{../figures/}}
+
+% ---- Colours (Okabe-Ito, as in the figures) ----------------------------------
+\definecolor{navy}{HTML}{0B2E4F}
+\definecolor{oiblue}{HTML}{0072B2}
+\definecolor{oiverm}{HTML}{D55E00}
+\definecolor{oigreen}{HTML}{009E73}
+\definecolor{paper}{HTML}{FFFFFF}
+\definecolor{softgrey}{HTML}{F2F4F7}
+\setbeamercolor{normal text}{fg=black!88, bg=paper}
+\setbeamercolor{frametitle}{fg=white, bg=navy}
+\setbeamercolor{palette primary}{fg=white, bg=navy}
+\setbeamercolor{progress bar}{fg=oiblue, bg=navy!25}
+\setbeamercolor{title separator}{fg=oiblue}
+\setbeamercolor{alerted text}{fg=oiverm}
+\setbeamercolor{example text}{fg=oigreen}
+\setbeamercolor{block title}{fg=white, bg=oiblue}
+\setbeamercolor{block body}{fg=black!88, bg=softgrey}
+\setbeamercolor{block title alerted}{fg=white, bg=oiverm}
+\setbeamercolor{block body alerted}{fg=black!88, bg=oiverm!8}
+\setbeamercolor{block title example}{fg=white, bg=oigreen}
+\setbeamercolor{block body example}{fg=black!88, bg=oigreen!8}
+\setbeamerfont{frametitle}{size=\large, series=\bfseries}
+\setbeamerfont{block title}{series=\bfseries}
+\setbeamertemplate{itemize item}{\color{oiblue}\small$\blacktriangleright$}
+\setbeamertemplate{itemize subitem}{\color{oiblue}\scriptsize$\bullet$}
+\setlength{\leftmargini}{1.1em}
+
+% ---- Helpers -------------------------------------------------------------------
+\newcommand{\co}{CO$_2$}
+\newcommand{\ppm}{\,ppm}
+\newcommand{\keyfig}[2]{\begin{center}{\Huge\bfseries\color{oiblue}#1}\\[1pt]{\small #2}\end{center}}
+\newcommand{\takeaway}[1]{\vfill\begin{beamercolorbox}[wd=\textwidth,sep=5pt,rounded=false]{block body}\small\textbf{\color{oiblue}Takeaway:} #1\end{beamercolorbox}}
+\newcolumntype{R}{>{\raggedleft\arraybackslash}X}
+
+% ---- Title -----------------------------------------------------------------------
+\title{Modeling and Forecasting Monthly Atmospheric \co\ at Mauna Loa, 1958--2026}
+\subtitle{A Seasonal ARIMA Analysis}
+\author{Pascal Antwi}
+\institute{STA6938 Time Series \quad$\cdot$\quad Final Project}
+\date{December 3, 2026}
+
+\begin{document}
+
+% =============================================================================
+\maketitle
+\note{Good morning. My project models and forecasts the monthly concentration of carbon dioxide measured at Mauna Loa from 1958 to 2026, and ends with a forecast to 2030.}
+
+% =============================================================================
+\begin{frame}{Roadmap}
+\begin{columns}[T]
+\column{0.5\textwidth}
+\begin{enumerate}
+  \item Data and motivation
+  \item Trend, seasonality and stationarity
+  \item Model identification and selection
+  \item Estimation, tests and confidence intervals
+  \item Model adequacy and remedial measures
+  \item Forecast evaluation and forecasts to 2030
+\end{enumerate}
+\column{0.45\textwidth}
+\begin{block}{Research questions}
+\begin{itemize}
+  \item How fast is \co\ rising?
+  \item Is the rise accelerating?
+  \item What levels should we expect by 2030?
+\end{itemize}
+\end{block}
+\end{columns}
+\note{The talk follows the Box--Jenkins workflow: plot and transform, make the series stationary, identify and estimate a model, check it, and forecast. Three questions guide the analysis.}
+\end{frame}
+
+% =============================================================================
+\begin{frame}{Why atmospheric \co?}
+\begin{columns}[T]
+\column{0.52\textwidth}
+\begin{itemize}
+  \item \co\ is the most important long-lived greenhouse gas.
+  \item Mauna Loa (Hawaii) holds the longest continuous direct record, started by C.~D.~Keeling in 1958.
+  \item Climate targets are framed around how fast \co\ rises and when it crosses thresholds.
+  \item \textbf{Data:} NOAA Global Monitoring Laboratory, monthly mean mole fraction (ppm).
+\end{itemize}
+\column{0.44\textwidth}
+\begin{block}{The series at a glance}
+\begin{tabular*}{\linewidth}{@{}l@{\extracolsep{\fill}}r@{}}
+Months, $n$ & 822\\
+Period & 1958--2026\\
+Missing values & none\\
+First value & 315.71\ppm\\
+Last value & 427.55\ppm\\
+Increase & \alert{+111.8\ppm}\\
+Relative increase & \alert{35\%}\\
+\end{tabular*}
+\end{block}
+\end{columns}
+\note{The data come from NOAA. There are 822 consecutive months with no gaps. Concentration rose from about 316 to 428 ppm, an increase of 35 percent.}
+\end{frame}
+
+% =============================================================================
+\begin{frame}{Step 1: the time plot}
+\begin{center}
+\includegraphics[width=0.9\textwidth]{fig01_co2_series.pdf}
+\end{center}
+\vspace{-6pt}
+\takeaway{An \alert{upward trend} and a regular \alert{12-month cycle}: the mean depends on $t$, so the series is non-stationary.}
+\note{The first step is always the time plot. Two features are obvious: a persistent upward trend and a seasonal cycle that repeats every year with almost the same shape. So the series is clearly non-stationary.}
+\end{frame}
+
+% =============================================================================
+\begin{frame}{Decomposition: trend plus a stable seasonal cycle}
+\begin{columns}[c]
+\column{0.5\textwidth}
+\includegraphics[width=\linewidth]{fig02_classical_decomposition.pdf}
+\column{0.48\textwidth}
+\small
+\begin{itemize}
+  \item Additive, $2\times12$ moving-average filter.
+  \item Trend: \alert{96.6\%} of the variance.
+  \item Peak in \textbf{May} ($+3.04$\ppm), trough in \textbf{October} ($-3.25$\ppm); amplitude \textbf{6.29\ppm}.
+  \item Amplitude 6.0\ppm\ (1960s) vs 7.0\ppm\ (2010s), while the level rose 35\%.
+\end{itemize}
+\begin{exampleblock}{Decision}
+Swings do not grow with the level $\Rightarrow$ \textbf{additive model, no transformation}.
+\end{exampleblock}
+\end{columns}
+\note{Classical decomposition separates the trend from the seasonal cycle. The cycle peaks in May and bottoms in October, driven by Northern Hemisphere vegetation. Because the amplitude barely changes while the level rises 35 percent, an additive model is adequate and no log transformation is needed.}
+\end{frame}
+
+% =============================================================================
+\begin{frame}{The growth rate is accelerating}
+\begin{center}
+\includegraphics[width=0.9\textwidth]{fig06_annual_growth_lag12_difference.pdf}
+\end{center}
+\vspace{-6pt}
+\takeaway{Growth tripled: \alert{0.86\ppm/yr} (1960s) $\rightarrow$ \alert{2.54\ppm/yr} (2020s). Record jumps in El Niño years (2016, 2024).}
+\note{The lag-12 difference is the change over twelve months. Its decade averages tripled, so CO2 is not only rising but rising faster. The largest jumps occurred during El Nino events.}
+\end{frame}
+
+% =============================================================================
+\begin{frame}{Achieving stationarity}
+\begin{columns}[c]
+\column{0.43\textwidth}
+\includegraphics[width=\linewidth]{fig05_acf_original_and_differences.pdf}
+\column{0.55\textwidth}
+\small
+\begin{itemize}
+  \item $X_t$: ACF decays very slowly ($\hat\rho(1)=0.996$).
+  \item $\nabla X_t$: ACF $\approx 0.9$ at lags 12, 24, 36 $\Rightarrow$ seasonal difference.
+  \item $\nabla_{12}X_t$: slow decay $\Rightarrow$ regular difference.
+\end{itemize}
+\vspace{2pt}
+\footnotesize
+\begin{tabular}{@{}llrc@{}}
+\toprule
+\multicolumn{4}{@{}l}{\textbf{Augmented Dickey--Fuller}, $H_0$: unit root}\\
+\midrule
+Series & Type & $\tau$ & Decision\\
+\midrule
+Seas.\ adj.\ $X_t$ & mean & 3.57 to 4.85 & keep $H_0$\\
+Seas.\ adj.\ $X_t$ & trend & $-0.88$ to $-0.62$ & keep $H_0$\\
+$\nabla\nabla_{12}X_t$ & mean & $-37.9$ to $-22.1$ & \alert{reject}\\
+\bottomrule
+\end{tabular}
+\vspace{4pt}
+
+\small $\Rightarrow\; W_t = (1-B)(1-B^{12})X_t$ is \textbf{stationary}.
+\end{columns}
+\note{The ACF of the original series decays extremely slowly. After a first difference the seasonal lags stay near 0.9, so we also need a seasonal difference. The ADF test cannot reject a unit root for the seasonally adjusted series, but strongly rejects it after both differences. So the doubly differenced series is stationary.}
+\end{frame}
+
+% =============================================================================
+\begin{frame}{Estimation versus differencing}
+\begin{columns}[c]
+\column{0.58\textwidth}
+\includegraphics[width=\linewidth]{fig09_regression_residuals.pdf}
+\column{0.4\textwidth}
+\small
+Quadratic trend + 11 monthly dummies:
+\begin{itemize}
+  \item Fit: $R^2 = 0.9994$.
+  \item Residual ACF(1) $=0.915$; $Q(12)=5991$.
+  \item Durbin--Watson $D = \alert{0.17}$ ($\ll 2$).
+  \item ARMA errors: AR root 1.02.
+\end{itemize}
+\begin{alertblock}{Conclusion}
+Deterministic trend fails: \textbf{difference instead}.
+\end{alertblock}
+\end{columns}
+\note{As an alternative, I estimated the trend and seasonality by regression. The fit looks excellent, but the residuals wander for years: the Durbin--Watson statistic is 0.17, far below 2. Even with ARMA errors the AR root is essentially one, so differencing is the right approach.}
+\end{frame}
+
+% =============================================================================
+\begin{frame}{Identification from the ACF and PACF of $W_t$}
+\begin{columns}[c]
+\column{0.48\textwidth}
+\includegraphics[width=\linewidth]{fig08_acf_pacf_differenced.pdf}
+\column{0.5\textwidth}
+\small
+\begin{itemize}
+  \item $Q(12)=283.3$, $p<0.001$: $W_t$ is not white noise.
+  \item \textbf{ACF cuts off} after lags 1 ($-0.28$) and 12 ($-0.47$).
+  \item \textbf{PACF tails off} at lags 1--3 and 12, 24, 36.
+  \item $\Rightarrow$ MA(1) $\times$ seasonal MA(1).
+\end{itemize}
+\begin{block}{ARIMA$(0,1,1)\times(0,1,1)_{12}$}
+\vspace{-6pt}
+\[(1-B)(1-B^{12})X_t=(1-\theta_1B)(1-\Theta_1B^{12})Z_t\]
+\vspace{-10pt}
+\end{block}
+\end{columns}
+\note{The differenced series is not white noise, so we model it. The ACF cuts off after lag 1 and lag 12, while the PACF tails off at both the regular and seasonal lags. That is the signature of moving-average terms at both levels, which gives the multiplicative seasonal ARIMA zero-one-one by zero-one-one, period twelve.}
+\end{frame}
+
+% =============================================================================
+\begin{frame}{Model selection: AIC and SBC}
+\centering\small
+\begin{tabular}{@{}lcrrrc@{}}
+\toprule
+Model & Parameters & AIC & SBC & $\Delta$SBC & Ljung--Box $Q(24)$ $p$\\
+\midrule
+\rowcolor{oiblue!10}\textbf{ARIMA$(0,1,1)\times(0,1,1)_{12}$} & \textbf{2} & 451.30 & \textbf{465.39} & \textbf{0.00} & 0.532\\
+ARIMA$(1,1,1)\times(0,1,1)_{12}$ & 3 & \textbf{447.58} & 466.37 & 0.98 & 0.769\\
+ARIMA$(0,1,2)\times(0,1,1)_{12}$ & 3 & 448.59 & 467.38 & 1.99 & 0.723\\
+ARIMA$(0,1,1)\times(1,1,1)_{12}$ & 3 & 453.30 & 472.08 & 6.69 & 0.472\\
+ARIMA$(2,1,0)\times(0,1,1)_{12}$ & 3 & 460.64 & 479.42 & 14.03 & 0.213\\
+ARIMA$(1,1,0)\times(0,1,1)_{12}$ & 2 & 472.83 & 486.92 & 21.53 & 0.038\\
+ARIMA$(0,1,1)\times(1,1,0)_{12}$ & 2 & 669.34 & 683.43 & 218.04 & $<0.001$\\
+\bottomrule
+\end{tabular}
+\vspace{10pt}
+\begin{itemize}
+  \item Nine candidates fitted by maximum likelihood; \textbf{SBC} preferred in this large sample.
+  \item Pure AR and seasonal-AR alternatives fit clearly worse.
+\end{itemize}
+\note{I compared nine candidates, including AR, MA and seasonal AR terms. The two-parameter model has the lowest SBC. One richer model has a slightly lower AIC, but SBC, which penalizes extra parameters more in large samples, prefers the simpler model. Pure AR and seasonal AR versions are clearly worse.}
+\end{frame}
+
+% =============================================================================
+\begin{frame}{Four model families compared}
+\centering\footnotesize
+\begin{tabular}{@{}llccc@{}}
+\toprule
+Family & Best model (by SBC) & ACF lag 12 & $Q(12)$ $p$ & White noise?\\
+\midrule
+ARMA & ARMA(3,2) for $W_t$ & $-0.409$ & $<0.001$ & \alert{No}\\
+ARIMA & ARIMA(4,1,4) with drift & $0.180$ & $<0.001$ & \alert{No}\\
+Regression + ARMA errors & ARMA(2,1) errors & $0.138$ & $<0.001$ & \alert{No}\\
+\rowcolor{oiblue!10}\textbf{Seasonal ARIMA} & \textbf{ARIMA$(0,1,1)\times(0,1,1)_{12}$} & $\mathbf{-0.005}$ & \textbf{0.464} & \textcolor{oigreen}{\textbf{Yes}}\\
+\bottomrule
+\end{tabular}
+\vspace{10pt}
+\begin{itemize}
+  \item Non-seasonal ARIMA mimics the seasonal difference with AR roots \emph{on} the unit circle (periods 6 and 12).
+  \item Only the seasonal ARIMA captures the seasonal structure, with just \textbf{two parameters}.
+\end{itemize}
+\note{I also fitted the best model from each family: ARMA, ARIMA, regression with ARMA errors, and seasonal ARIMA. Only the seasonal ARIMA leaves white-noise residuals. The others all leave strong correlation at lag 12. The non-seasonal ARIMA even puts its AR roots exactly on the unit circle to fake a seasonal difference.}
+\end{frame}
+
+% =============================================================================
+\begin{frame}{Estimates, hypothesis tests and confidence intervals}
+\centering\small
+\begin{tabular}{@{}llrrrrc@{}}
+\toprule
+Method & Parameter & Estimate & SE & $z$ & $p$ & 95\% CI\\
+\midrule
+Maximum likelihood & $\theta_1$ & 0.3885 & 0.0367 & 10.59 & $<0.001$ & [0.317, 0.460]\\
+ & $\Theta_1$ & 0.8700 & 0.0170 & 51.28 & $<0.001$ & [0.837, 0.903]\\
+\midrule
+Conditional least squares & $\theta_1$ & 0.4172 & 0.0360 & 11.60 & $<0.001$ & [0.347, 0.488]\\
+ & $\Theta_1$ & 0.8116 & 0.0194 & 41.84 & $<0.001$ & [0.774, 0.850]\\
+\bottomrule
+\end{tabular}
+\vspace{6pt}
+\begin{columns}[T]
+\column{0.48\textwidth}
+\begin{block}{Inference}
+\small Both parameters highly significant; ML and CLS agree. $\hat\sigma_Z = 0.318$\ppm.\\
+Invertible: roots $2.57$ and $1.012 > 1$.
+\end{block}
+\column{0.48\textwidth}
+\begin{exampleblock}{Interpretation}
+\small $\hat\theta_1$: 39\% of a monthly shock reverses next month.\\
+$\hat\Theta_1 = 0.87$: very stable seasonal pattern; CI excludes 1.
+\end{exampleblock}
+\end{columns}
+\note{Both coefficients are highly significant, with z-statistics of 10.6 and 51.3, and the two estimation methods agree. All roots lie outside the unit circle, so the model is invertible. The seasonal coefficient of 0.87 means the seasonal pattern is very stable; because its confidence interval excludes one, seasonal differencing was justified.}
+\end{frame}
+
+% =============================================================================
+\begin{frame}{Model adequacy: residual diagnostics}
+\begin{columns}[c]
+\column{0.56\textwidth}
+\includegraphics[width=\linewidth]{fig10_final_model_residual_diagnostics.pdf}
+\column{0.42\textwidth}
+\footnotesize
+\begin{tabular}{@{}lrr@{}}
+\toprule
+Test & Statistic & $p$\\
+\midrule
+Ljung--Box $Q(6)$ & 9.05 & 0.060\\
+Ljung--Box $Q(12)$ & 9.74 & 0.464\\
+Ljung--Box $Q(18)$ & 14.43 & 0.567\\
+Ljung--Box $Q(24)$ & 20.83 & 0.532\\
+$Q(12)$, squared resid. & 12.40 & 0.414\\
+Shapiro--Wilk & 0.996 & 0.048\\
+\bottomrule
+\end{tabular}
+\vspace{4pt}
+\small
+\begin{itemize}
+  \item Independence \textcolor{oigreen}{\checkmark} \; Constant variance \textcolor{oigreen}{\checkmark}
+  \item Normality \alert{marginal}: 5 months beyond $\pm3$.
+\end{itemize}
+\end{columns}
+\note{The residuals pass the Ljung--Box test at lags 6, 12, 18 and 24, and the squared residuals show constant variance. Normality is only marginally rejected, and that is driven by five unusual months, such as April 2016 during a strong El Nino.}
+\end{frame}
+
+% =============================================================================
+\begin{frame}{Remedial measures}
+\begin{columns}[T]
+\column{0.48\textwidth}
+\begin{block}{1. Small lag-3 autocorrelation}
+\small
+Added an AR(1) term: $\hat\phi_1 = 0.215$ ($p=0.010$).
+\begin{itemize}
+  \item SBC rises (466.37 vs 465.39).
+  \item Hold-out RMSE worse: 1.168 vs 1.110.
+  \item Interval coverage only \alert{83\%} vs 97\%.
+\end{itemize}
+$\Rightarrow$ \textbf{Rejected}: keep the parsimonious model.
+\end{block}
+\column{0.48\textwidth}
+\begin{block}{2. Five outlying months}
+\small
+Re-estimated with those months set to missing:
+\begin{itemize}
+  \item $\hat\theta_1 = 0.384$, $\hat\Theta_1 = 0.869$: \textbf{unchanged}.
+  \item Normality restored: Shapiro--Wilk $p=0.211$, Anderson--Darling $p=0.101$.
+\end{itemize}
+$\Rightarrow$ Inference is \textbf{robust}.
+\end{block}
+\end{columns}
+\takeaway{ARIMA$(0,1,1)\times(0,1,1)_{12}$ is adequate; no transformation is needed.}
+\note{I tried two remedies. Adding an AR term removed a small lag-3 correlation, but it raised the SBC and forecast worse, so I kept the simpler model. Setting the five outlying months to missing left the estimates unchanged and restored normality, so the inference is robust.}
+\end{frame}
+
+% =============================================================================
+\begin{frame}{Forecast evaluation}
+\begin{columns}[c]
+\column{0.58\textwidth}
+\includegraphics[width=\linewidth]{fig15_rolling_origin_accuracy.pdf}
+\column{0.4\textwidth}
+\small
+\textbf{Rolling origin:} refit each August 2000--2022; forecast 12 months (276 forecasts).
+\begin{itemize}
+  \item Seasonal ARIMA: RMSE \alert{0.552\ppm}, 95\% coverage \alert{96.0\%}.
+  \item Best of the four model families; tied with Holt--Winters smoothing.
+\end{itemize}
+\textbf{Hold-out} (Sep 2023 -- Aug 2026): RMSE 1.110\ppm, coverage 97.2\%.
+\end{columns}
+\note{To test forecasting, I refit every model at 23 origins and forecast a year ahead each time. The seasonal ARIMA has an RMSE of about half a ppm with 96 percent interval coverage, close to the nominal 95. It is the best of the model families and essentially tied with Holt--Winters smoothing.}
+\end{frame}
+
+% =============================================================================
+\begin{frame}{Forecasts to 2030}
+\begin{columns}[c]
+\column{0.6\textwidth}
+\includegraphics[width=\linewidth]{fig13_forecast_to_2030.pdf}
+\column{0.38\textwidth}
+\keyfig{April 2030}{\co\ first exceeds \textbf{440\ppm}\\ 440.84\ppm\ [437.78, 443.89]}
+\small
+\begin{itemize}
+  \item Dec 2030: 439.03\ppm\\ 95\% PI [435.59, 442.47]
+  \item Growth $\approx$ \textbf{2.4\ppm/yr}
+  \item Holt--Winters agrees within 0.13\ppm.
+\end{itemize}
+\end{columns}
+\note{The final model, fitted to all 822 months, forecasts that monthly CO2 will first exceed 440 ppm in April 2030. Growth continues at about 2.4 ppm per year, and an independent Holt--Winters forecast agrees to within 0.13 ppm.}
+\end{frame}
+
+% =============================================================================
+\begin{frame}{Conclusions}
+\small
+\begin{enumerate}
+  \item \co\ is non-stationary with an \textbf{accelerating trend} and a \textbf{stable 12-month cycle}; regular and seasonal differencing achieve stationarity.
+  \item \textbf{ARIMA$(0,1,1)\times(0,1,1)_{12}$} is selected by ACF/PACF identification and SBC; both parameters are highly significant and the model is invertible.
+  \item Residuals are white noise with constant variance; inference is robust to five outlying months.
+  \item Best of four model families in out-of-sample forecasting (RMSE 0.55\ppm, 96\% coverage).
+  \item \co\ rises $\approx$\,2.4\ppm/yr and is forecast to pass \alert{440\ppm\ in April 2030}.
+\end{enumerate}
+\begin{alertblock}{Limitations and extensions}
+\small Univariate model: it cannot anticipate El Niño surges (2016, 2024). Adding climate indices or emissions data is a natural extension.
+\end{alertblock}
+\note{To conclude: the series needed both a regular and a seasonal difference; a simple two-parameter seasonal ARIMA fits it well, passes the diagnostics and forecasts best among the model families. CO2 is rising about 2.4 ppm per year and should pass 440 ppm in spring 2030. The main limitation is that a univariate model cannot anticipate El Nino surges.}
+\end{frame}
+
+% =============================================================================
+\begin{frame}[standout]
+Thank you\\[6pt]
+{\normalsize Questions?}
+\note{Thank you. I am happy to take questions.}
+\end{frame}
+
+% =============================================================================
+\appendix
+
+\begin{frame}{Backup: residual ACF of the four model families}
+\begin{center}
+\includegraphics[width=0.82\textwidth]{fig14_residual_acf_by_model_family.pdf}
+\end{center}
+\note{Backup slide: the residual ACF of the best model in each family. Only the seasonal ARIMA, panel d, has no spikes at the seasonal lags.}
+\end{frame}
+
+\begin{frame}{Backup: 36-month hold-out forecasts}
+\begin{center}
+\includegraphics[width=0.86\textwidth]{fig12_holdout_forecast_comparison.pdf}
+\end{center}
+\note{Backup slide: forecasts made in August 2023 for the next three years. All methods under-predicted 2024, the year of record growth during the El Nino.}
+\end{frame}
+
+\begin{frame}{Backup: Ljung--Box $p$-values by lag}
+\begin{center}
+\includegraphics[width=0.86\textwidth]{fig11_ljung_box_pvalues.pdf}
+\end{center}
+\note{Backup slide: Ljung--Box p-values for lags up to 36 for the final and the alternative model.}
+\end{frame}
+
+\begin{frame}{References}
+\footnotesize
+\begin{itemize}
+  \item Box, G.\,E.\,P., Jenkins, G.\,M., Reinsel, G.\,C., \& Ljung, G.\,M. (2015). \emph{Time Series Analysis: Forecasting and Control} (5th ed.). Wiley.
+  \item Brockwell, P.\,J., \& Davis, R.\,A. (2016). \emph{Introduction to Time Series and Forecasting} (3rd ed.). Springer.
+  \item Dickey, D.\,A., \& Fuller, W.\,A. (1979). Distribution of the estimators for autoregressive time series with a unit root. \emph{JASA}, 74, 427--431.
+  \item Keeling, C.\,D. (1960). The concentration and isotopic abundances of carbon dioxide in the atmosphere. \emph{Tellus}, 12, 200--203.
+  \item Lan, X., \& Keeling, R.\,F. (2026). Trends in atmospheric carbon dioxide: Mauna Loa monthly mean data. NOAA Global Monitoring Laboratory.
+  \item Ljung, G.\,M., \& Box, G.\,E.\,P. (1978). On a measure of lack of fit in time series models. \emph{Biometrika}, 65, 297--303.
+  \item Schwarz, G. (1978). Estimating the dimension of a model. \emph{Annals of Statistics}, 6, 461--464.
+  \item Winters, P.\,R. (1960). Forecasting sales by exponentially weighted moving averages. \emph{Management Science}, 6, 324--342.
+\end{itemize}
+\end{frame}
+
+\end{document}

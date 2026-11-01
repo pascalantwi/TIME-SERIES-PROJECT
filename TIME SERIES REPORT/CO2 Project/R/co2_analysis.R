@@ -22,7 +22,21 @@ save_fig <- function(p, name, w = 9, h = 5) {
   ggsave(file.path("figures", paste0(name, ".png")), p, width = w, height = h, dpi = 600, bg = "white",
          device = ragg::agg_png)
   ggsave(file.path("figures", paste0(name, ".pdf")), p, width = w, height = h, device = cairo_pdf)
+  # Presentation version, sized for its place on the 16:9 slide so text stays legible when projected
+  d <- slide_dims[[name]]
+  if (!is.null(d)) {
+    ps <- if (inherits(p, "patchwork")) p & theme(text = element_text(size = 11)) else p + theme(text = element_text(size = 11))
+    ggsave(file.path("figures", "slide", paste0(name, ".pdf")), ps, width = d[1], height = d[2], device = cairo_pdf)
+  }
 }
+dir.create(file.path("figures", "slide"), showWarnings = FALSE)
+slide_dims <- list(
+  fig01_co2_series = c(6.6, 3.0), fig02_classical_decomposition = c(4.3, 4.5),
+  fig05_acf_original_and_differences = c(4.0, 4.7), fig06_annual_growth_lag12_difference = c(6.6, 2.9),
+  fig08_acf_pacf_differenced = c(4.3, 4.3), fig09_regression_residuals = c(5.6, 3.3),
+  fig10_final_model_residual_diagnostics = c(5.4, 4.3), fig11_ljung_box_pvalues = c(6.6, 3.4),
+  fig12_holdout_forecast_comparison = c(6.6, 3.6), fig13_forecast_to_2030 = c(5.4, 3.9),
+  fig14_residual_acf_by_model_family = c(6.8, 4.3), fig15_rolling_origin_accuracy = c(6.0, 3.0))
 save_tab <- function(df, name, align = NULL) {
   write.csv(df, file.path("tables", paste0(name, ".csv")), row.names = FALSE)
   tex <- kbl(df, format = "latex", booktabs = TRUE, align = align, linesep = "", escape = TRUE, row.names = FALSE)
@@ -537,9 +551,9 @@ save_fig(p, "fig08_acf_pacf_differenced", h = 6.5)
 rdf <- data.frame(Date = dates, r = reg_res)
 p <- (ggplot(rdf, aes(Date, r)) + geom_hline(yintercept = 0, colour = ink2, linewidth = 0.3) +
         geom_line(colour = c_blue, linewidth = 0.4) +
-        scale_x_date(breaks = decade_breaks, date_labels = "%Y") +
-        labs(title = "(a) Residuals of quadratic trend + seasonal dummies", x = NULL, y = "ppm") + theme_slide()) |
-     (acf_panel(ts(reg_res, frequency = 12), "(b) ACF of regression residuals", 36, seasonal = FALSE) +
+        scale_x_date(breaks = as.Date(paste0(seq(1960, 2020, 20), "-01-01")), date_labels = "%Y") +
+        labs(title = "(a) Regression residuals", x = NULL, y = "ppm") + theme_slide()) |
+     (acf_panel(ts(reg_res, frequency = 12), "(b) ACF of residuals", 36, seasonal = FALSE) +
         coord_cartesian(ylim = c(-0.2, 1)))
 save_fig(p, "fig09_regression_residuals")
 
@@ -552,14 +566,14 @@ p1 <- ggplot(zdf, aes(Date, z)) + geom_hline(yintercept = 0, colour = ink2, line
   geom_point(data = odf, colour = c_red, size = 2) +
   geom_text_repel(data = odf, aes(label = lab), size = 3, colour = ink, min.segment.length = 0, seed = 1,
                   nudge_y = ifelse(odf$z > 0, 0.6, -0.6), segment.colour = ink2) +
-  scale_x_date(breaks = decade_breaks, date_labels = "%Y") +
+  scale_x_date(breaks = as.Date(paste0(seq(1960, 2020, 20), "-01-01")), date_labels = "%Y") +
   scale_y_continuous(expand = expansion(mult = 0.15)) +
   labs(title = "(a) Standardized residuals", x = NULL, y = "Residual / SD") + theme_slide()
 p2 <- acf_panel(ts(e, frequency = 12), "(b) ACF of residuals", 36) + coord_cartesian(ylim = c(-0.2, 0.2))
 p3 <- ggplot(zdf, aes(z)) +
   geom_histogram(aes(y = after_stat(density)), binwidth = 0.25, fill = c_blue, colour = "white", linewidth = 0.2) +
   stat_function(fun = dnorm, colour = c_orange, linewidth = 0.8) +
-  labs(title = "(c) Histogram and N(0,1) density", x = "Standardized residual", y = "Density") + theme_slide()
+  labs(title = "(c) Histogram vs N(0,1)", x = "Standardized residual", y = "Density") + theme_slide()
 p4 <- ggplot(zdf, aes(sample = z)) + stat_qq(colour = c_blue, size = 0.9) + stat_qq_line(colour = c_orange, linewidth = 0.8) +
   labs(title = "(d) Normal Q-Q plot", x = "Normal quantiles", y = "Sample quantiles") + theme_slide()
 save_fig((p1 | p2) / (p3 | p4), "fig10_final_model_residual_diagnostics", h = 6.5)
@@ -613,8 +627,8 @@ p <- ggplot() +
   scale_fill_manual(values = c("80% prediction interval" = c_blue, "95% prediction interval" = c_blue),
                     breaks = c("80% prediction interval", "95% prediction interval")) +
   guides(fill = guide_legend(override.aes = list(alpha = c(0.45, 0.2)))) +
-  scale_x_date(breaks = as.Date(paste0(seq(2018, 2030, 2), "-01-01")), date_labels = "%Y", expand = expansion(mult = c(0.01, 0.1))) +
-  labs(x = NULL, y = expression(CO[2] ~ "(ppm)")) + theme_slide()
+  scale_x_date(breaks = as.Date(paste0(seq(2018, 2030, 2), "-01-01")), date_labels = "%Y", expand = expansion(mult = c(0.01, 0.16))) +
+  labs(x = NULL, y = expression(CO[2] ~ "(ppm)")) + theme_slide() + theme(legend.box = "vertical", legend.spacing.y = unit(0, "pt"))
 save_fig(p, "fig13_forecast_to_2030")
 
 save_tab(data.frame(Family = fam_tab$Family, Model = fam_tab$Model, Parameters = fam_tab$Parameters,
@@ -631,18 +645,18 @@ rt <- roll_tab; rt$Method <- factor(rt$Method, levels = rev(rt$Method))
 rt$final <- grepl("Seasonal ARIMA", rt$Method)
 p <- ggplot(rt, aes(RMSE, Method, fill = final)) +
   geom_col(width = 0.6, show.legend = FALSE) +
-  geom_text(aes(label = paste0(f(RMSE, 3), "  (", f(Coverage, 1), "% coverage)")), hjust = -0.05, size = 3.8, colour = ink) +
+  geom_text(aes(label = paste0(f(RMSE, 3), " (", f(Coverage, 1), "%)")), hjust = -0.05, size = 3.8, colour = ink) +
   scale_fill_manual(values = c(`TRUE` = c_blue, `FALSE` = "grey75")) +
-  scale_x_continuous(expand = expansion(mult = c(0, 0.45))) +
-  labs(x = "RMSE of 12-month-ahead forecasts (ppm), 23 forecast origins 2000-2022", y = NULL) + theme_slide() +
+  scale_x_continuous(expand = expansion(mult = c(0, 0.42))) +
+  labs(x = "RMSE of 12-month-ahead forecasts (ppm)", y = NULL) + theme_slide() +
   theme(panel.grid.major.y = element_blank())
 save_fig(p, "fig15_rolling_origin_accuracy", h = 4.2)
 
 fam_acf <- do.call(rbind, lapply(seq_along(fam_list), function(i) {
   e <- as.numeric(resid(fam_list[[i]]$fit)); e <- e[!is.na(e)]
   a <- acf(e, 36, plot = FALSE)$acf[-1]
-  short <- c(paste("ARMA:", fam_list[[1]]$model), paste("ARIMA:", fam_list[[2]]$model),
-             sprintf("Regression with ARMA(%d,%d) errors", fam_reg$p, fam_reg$q), paste("Seasonal ARIMA:", fam_list[[4]]$model))
+  short <- c(fam_list[[1]]$model, fam_list[[2]]$model,
+             sprintf("Regression, ARMA(%d,%d) errors", fam_reg$p, fam_reg$q), paste("Seasonal", fam_list[[4]]$model))
   data.frame(panel = paste0("(", letters[i], ") ", short[i]),
              lag = 1:36, r = a, seas = (1:36) %% 12 == 0, b = 1.96 / sqrt(length(e)))
 }))

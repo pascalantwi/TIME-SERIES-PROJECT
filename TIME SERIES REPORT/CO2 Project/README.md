@@ -13,6 +13,9 @@ STA6938 Time Series. Data: NOAA Global Monitoring Laboratory, 822 monthly means,
 | `report/main.pdf` | **The report** (5 pages; text, values and interpretation only, with no tables or figures, as the professor requires) |
 | `report/main.tex`, `report/references.bib` | LaTeX source of the report |
 | `CO2_Report_LaTeX.zip` | The LaTeX report as a zip, ready to upload to Overleaf |
+| `slides/slides.pdf`, `slides/notes.pdf` | **The presentation** (16 slides + 4 backup, 16:9, about 15 minutes) and speaker notes |
+| `CO2_Slides_LaTeX.zip` | The Beamer presentation as a zip (slides, speaker notes, slide-sized figures), ready for Overleaf |
+| `figures/slide/` | Vector figures re-sized for legibility on the slides |
 | `figures/` | 15 figures for the slides: PNG (600 dpi) and PDF (vector, fonts embedded); academic style: Palatino serif type, framed panels, colour-blind-safe Okabe–Ito palette |
 | `tables/` | 17 tables for the slides: CSV (Excel/PowerPoint) and `.tex` (Beamer, `booktabs`) |
 | `R/co2_analysis.R` | The full analysis; regenerates every figure, table and number |
@@ -75,5 +78,5 @@ R packages: `forecast`, `tseries`, `urca`, `nortest`, `ggplot2`, `patchwork`, `s
 
 ## Before submitting
 
-- Replace **Student Name** in `report/main.tex` (title block) with your name.
+- Author: Pascal Antwi (already set in the report and the slides).
 - Check the instructor line and the date (December 6, 2026) in the title block.
