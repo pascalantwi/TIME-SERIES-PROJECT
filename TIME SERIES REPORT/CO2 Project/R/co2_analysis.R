@@ -110,6 +110,19 @@ keep("reg_r2", summary(reg)$r.squared); keep("reg_sigma", summary(reg)$sigma)
 keep("reg_b1", coef(reg)["tt"]); keep("reg_b2", coef(reg)["I(tt^2)"])
 keep("reg_res_acf1", acf(reg_res, 1, plot = FALSE)$acf[2])
 keep("reg_lb12", Box.test(reg_res, 12, "Ljung-Box")$statistic)
+keep("reg_dw", sum(diff(reg_res)^2) / sum(reg_res^2))           # Durbin-Watson (Note 12)
+
+# Regression with autocorrelated (ARMA) errors (Note 12); time rescaled to (0, 1]
+Xreg <- cbind(t = seq_len(n) / n, t2 = (seq_len(n) / n)^2, seasonaldummy(x))
+reg_arma <- lapply(list(c(1, 0, 0), c(2, 0, 0), c(2, 0, 1)), function(o) {
+  fit <- Arima(x, order = o, xreg = Xreg, method = "ML")
+  ar <- coef(fit)[grepl("^ar", names(coef(fit)))]
+  data.frame(Errors = sprintf("ARMA(%d,%d)", o[1], o[3]), AR_sum = sum(ar),
+             LB12_p = Box.test(resid(fit), 12, "Ljung-Box", fitdf = sum(o))$p.value,
+             LB24_p = Box.test(resid(fit), 24, "Ljung-Box", fitdf = sum(o))$p.value)
+})
+reg_arma <- do.call(rbind, reg_arma)
+keep("reg_arma", reg_arma)
 
 # ---- 4. Stationarity: ACF and ADF (Notes 3-4) --------------------------------
 d1 <- diff(x); dd <- diff(d12)
@@ -157,7 +170,7 @@ cands <- list(c(0,1,1,0,1,1), c(1,1,0,0,1,1), c(1,1,1,0,1,1), c(0,1,2,0,1,1), c(
 cand <- do.call(rbind, lapply(cands, function(o) {
   fit <- Arima(x, order = o[1:3], seasonal = o[4:6], method = "ML")
   k <- sum(o[c(1, 3, 4, 6)])
-  data.frame(Model = sprintf("ARIMA(%d,%d,%d)(%d,%d,%d)[12]", o[1], o[2], o[3], o[4], o[5], o[6]),
+  data.frame(Model = sprintf("ARIMA(%d,%d,%d)×(%d,%d,%d)[12]", o[1], o[2], o[3], o[4], o[5], o[6]),
              Parameters = k, LogLik = as.numeric(logLik(fit)), AIC = AIC(fit), SBC = BIC(fit),
              LB24_p = Box.test(resid(fit), 24, "Ljung-Box", fitdf = k)$p.value)
 }))
@@ -165,7 +178,7 @@ cand <- cand[order(cand$SBC), ]
 cand$dSBC <- cand$SBC - min(cand$SBC)
 keep("cand", cand)
 
-# ---- 7. Final model ARIMA(0,1,1)(0,1,1)[12]; alternative ARIMA(1,1,1)(0,1,1)[12] ------
+# ---- 7. Final model ARIMA(0,1,1)×(0,1,1)[12]; alternative ARIMA(1,1,1)×(0,1,1)[12] ------
 # Course sign convention: MA terms enter as (1 - theta B), so theta = -(R's ma coefficient);
 # AR terms enter as (1 - phi B), the same sign R reports.
 course_sign <- function(fit) { b <- coef(fit); ma <- grepl("ma", names(b)); b[ma] <- -b[ma]; b }
@@ -178,9 +191,9 @@ est_tab <- function(fit, model, method) {
 fit_ml  <- Arima(x, order = c(0, 1, 1), seasonal = c(0, 1, 1), method = "ML")
 fit_css <- Arima(x, order = c(0, 1, 1), seasonal = c(0, 1, 1), method = "CSS")
 fit_alt <- Arima(x, order = c(1, 1, 1), seasonal = c(0, 1, 1), method = "ML")
-est <- rbind(est_tab(fit_ml, "Final: ARIMA(0,1,1)(0,1,1)[12]", "Maximum likelihood"),
-             est_tab(fit_css, "Final: ARIMA(0,1,1)(0,1,1)[12]", "Conditional least squares"),
-             est_tab(fit_alt, "Alternative: ARIMA(1,1,1)(0,1,1)[12]", "Maximum likelihood"))
+est <- rbind(est_tab(fit_ml, "Final: ARIMA(0,1,1)×(0,1,1)[12]", "Maximum likelihood"),
+             est_tab(fit_css, "Final: ARIMA(0,1,1)×(0,1,1)[12]", "Conditional least squares"),
+             est_tab(fit_alt, "Alternative: ARIMA(1,1,1)×(0,1,1)[12]", "Maximum likelihood"))
 keep("est", est); keep("sigma2_ml", fit_ml$sigma2); keep("sigma2_css", fit_css$sigma2); keep("sigma2_alt", fit_alt$sigma2)
 keep("loglik", as.numeric(logLik(fit_ml))); keep("aic", AIC(fit_ml)); keep("sbc", BIC(fit_ml))
 keep("aic_alt", AIC(fit_alt)); keep("sbc_alt", BIC(fit_alt))
@@ -226,7 +239,8 @@ keep("diag_rob", diag_rob); keep("est_rob", course_sign(fit_rob)); keep("est_rob
 keep("sigma2_rob", fit_rob$sigma2)
 lb_curve <- function(e, k, model) data.frame(lag = (k + 1):36, model = model,
   p = sapply((k + 1):36, function(h) Box.test(e, h, "Ljung-Box", fitdf = k)$p.value))
-lb_lags <- rbind(lb_curve(e, 2, "Final: ARIMA(0,1,1)(0,1,1)[12]"), lb_curve(e_alt, 3, "Alternative: ARIMA(1,1,1)(0,1,1)[12]"))
+lb_lags <- rbind(lb_curve(e, 2, "Final: ARIMA(0,1,1)×(0,1,1)[12]"), lb_curve(e_alt, 3, "Alternative: ARIMA(1,1,1)×(0,1,1)[12]"))
+lb_lags$model <- factor(lb_lags$model, levels = unique(lb_lags$model))   # final model first (blue)
 fin_lb <- lb_lags[grepl("Final", lb_lags$model), ]
 keep("lb_min_p_final", min(fin_lb$p)); keep("lb_min_lag_final", fin_lb$lag[which.min(fin_lb$p)])
 
@@ -250,8 +264,8 @@ fc_sn <- snaive(tr, h = H, level = 95)
 acc <- function(fc, lo, hi) c(RMSE = sqrt(mean((te - fc)^2)), MAE = mean(abs(te - fc)),
                               MAPE = 100 * mean(abs((te - fc) / te)), Coverage = 100 * mean(te >= lo & te <= hi))
 acc_tab <- rbind(
-  "Final: ARIMA(0,1,1)(0,1,1)[12]" = acc(fc_ar$mean, fc_ar$lower, fc_ar$upper),
-  "Alternative: ARIMA(1,1,1)(0,1,1)[12]" = acc(fc_ai$mean, fc_ai$lower, fc_ai$upper),
+  "Final: ARIMA(0,1,1)×(0,1,1)[12]" = acc(fc_ar$mean, fc_ar$lower, fc_ar$upper),
+  "Alternative: ARIMA(1,1,1)×(0,1,1)[12]" = acc(fc_ai$mean, fc_ai$lower, fc_ai$upper),
   "Holt-Winters (additive)" = acc(fc_hw$mean, fc_hw$lower, fc_hw$upper),
   "Regression: quadratic trend + seasonal dummies" = acc(pr[, 1], pr[, 2], pr[, 3]),
   "Seasonal naive" = acc(fc_sn$mean, fc_sn$lower, fc_sn$upper)
@@ -300,8 +314,14 @@ save_tab(data.frame(Series = adf$label, Type = ifelse(adf$type == "drift", "Sing
 
 rc <- coef(summary(reg))
 save_tab(data.frame(Term = c("Intercept", "t", "t^2", paste("Month:", month.abb[2:12])),
-                    Estimate = f(rc[, 1], 4), SE = f(rc[, 2], 4), t = f(rc[, 3]), p = fp(rc[, 4])),
+                    Estimate = f(rc[, 1], 4), SE = f(rc[, 2], 4), t = f(rc[, 3]), p = fp(rc[, 4])) |>
+           rbind(data.frame(Term = c("R-squared", "Durbin-Watson D"), Estimate = f(c(summary(reg)$r.squared, sum(diff(reg_res)^2) / sum(reg_res^2)), 4),
+                            SE = "", t = "", p = "")),
          "tab05_regression_trend_seasonal", "lrrrr")
+
+save_tab(data.frame(`Error model` = reg_arma$Errors, `Sum of AR coefficients` = f(reg_arma$AR_sum, 3),
+                    `Ljung-Box Q(12) p` = fp(reg_arma$LB12_p), `Ljung-Box Q(24) p` = fp(reg_arma$LB24_p), check.names = FALSE),
+         "tab15_regression_autocorrelated_errors", "lrrr")
 
 wn <- data.frame(Lag = c(6, 12, 18, 24), Q = f(wn_dd[, 1]), p = fp(wn_dd[, 2]))
 save_tab(wn, "tab06_white_noise_differenced", "rrr")
@@ -471,12 +491,12 @@ p <- ggplot(hdf, aes(Date)) +
   geom_ribbon(aes(ymin = lo, ymax = hi, fill = "ARIMA 95% prediction interval"), alpha = 0.2) +
   geom_line(data = hist_tr, aes(Date, y), colour = c_grey, linewidth = 0.6) +
   geom_line(aes(y = Actual, colour = "Actual"), linewidth = 0.9) +
-  geom_line(aes(y = ARIMA, colour = "ARIMA(0,1,1)(0,1,1)[12]"), linewidth = 0.8) +
+  geom_line(aes(y = ARIMA, colour = "ARIMA(0,1,1)×(0,1,1)[12]"), linewidth = 0.8) +
   geom_line(aes(y = HW, colour = "Holt-Winters"), linewidth = 0.8, linetype = "longdash") +
   geom_line(aes(y = Reg, colour = "Regression"), linewidth = 0.9, linetype = "dotted") +
   geom_vline(xintercept = dates[n - H + 1], colour = ink2, linewidth = 0.3) +
-  scale_colour_manual(values = c("Actual" = ink, "ARIMA(0,1,1)(0,1,1)[12]" = c_blue, "Holt-Winters" = c_aqua, "Regression" = c_orange),
-                      breaks = c("Actual", "ARIMA(0,1,1)(0,1,1)[12]", "Holt-Winters", "Regression")) +
+  scale_colour_manual(values = c("Actual" = ink, "ARIMA(0,1,1)×(0,1,1)[12]" = c_blue, "Holt-Winters" = c_aqua, "Regression" = c_orange),
+                      breaks = c("Actual", "ARIMA(0,1,1)×(0,1,1)[12]", "Holt-Winters", "Regression")) +
   scale_fill_manual(values = c("ARIMA 95% prediction interval" = c_blue)) +
   guides(colour = guide_legend(order = 1, override.aes = list(linetype = c("solid", "solid", "longdash", "dotted"))),
          fill = guide_legend(order = 2)) +

@@ -1,0 +1,4 @@
+"Error model","Sum of AR coefficients","Ljung-Box Q(12) p","Ljung-Box Q(24) p"
+"ARMA(1,0)","0.914","< 0.001","< 0.001"
+"ARMA(2,0)","0.930","< 0.001","< 0.001"
+"ARMA(2,1)","0.990","< 0.001","< 0.001"

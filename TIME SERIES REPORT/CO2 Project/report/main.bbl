@@ -25,7 +25,7 @@ Rob~J. Hyndman and Yeasmin Khandakar.
 
 \bibitem[Jia(2026)]{jia2026}
 Y.~Jia.
-\newblock {STA6938} time series: Lecture notes 3--9.
+\newblock {STA6938} time series: Lecture notes 3--12.
 \newblock Course notes, 2026.
 
 \bibitem[Keeling(1960)]{keeling1960}
@@ -37,10 +37,8 @@ Charles~D. Keeling.
 \bibitem[Lan and Keeling(2026)]{noaa2026}
 Xin Lan and Ralph~F. Keeling.
 \newblock Trends in atmospheric carbon dioxide: {Mauna Loa} monthly mean data.
-\newblock NOAA Global Monitoring Laboratory and Scripps Institution of
-  Oceanography, 2026.
+\newblock NOAA Global Monitoring Laboratory, 2026.
 \newblock URL \url{https://gml.noaa.gov/ccgg/trends/}.
-\newblock Accessed November 2026.
 
 \bibitem[Ljung and Box(1978)]{ljung1978}
 Greta~M. Ljung and George E.~P. Box.
