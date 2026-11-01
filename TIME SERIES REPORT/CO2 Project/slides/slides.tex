@@ -73,7 +73,7 @@
 \begin{columns}[T]
 \column{0.5\textwidth}
 \begin{enumerate}
-  \item Data and motivation
+  \item Motivation, problem statement and data
   \item Trend, seasonality and stationarity
   \item Model identification and selection
   \item Estimation, tests and confidence intervals
@@ -93,14 +93,45 @@
 \end{frame}
 
 % =============================================================================
-\begin{frame}{Why atmospheric \co?}
+\begin{frame}{Motivation and problem statement}
+\begin{columns}[T]
+\column{0.48\textwidth}
+\begin{block}{Why this topic}
+\small
+\begin{itemize}
+  \item \co\ is the main driver of global warming.
+  \item Climate targets depend on \emph{how fast} \co\ rises and \emph{when} it crosses thresholds.
+  \item A defining problem of my generation: I wanted a project with real consequences, not a textbook example.
+  \item Statistically rich: trend, seasonality and dependence in one series.
+\end{itemize}
+\end{block}
+\column{0.48\textwidth}
+\begin{alertblock}{Problem statement}
+\small
+\co\ is rising; the question is \textbf{how fast}, \textbf{whether it is accelerating}, and \textbf{what to expect next}, with proper uncertainty.
+\end{alertblock}
+\begin{exampleblock}{Objectives}
+\small
+\begin{enumerate}\setlength{\itemsep}{0pt}
+  \item Characterize the trend and seasonality.
+  \item Build and validate an adequate model.
+  \item Test whether growth is accelerating.
+  \item Forecast to 2030 with prediction intervals.
+\end{enumerate}
+\end{exampleblock}
+\end{columns}
+\note{Why did I choose this topic? Carbon dioxide is the main driver of global warming, and climate targets depend on how fast it rises and when it crosses thresholds such as 440 ppm. Climate change is one of the defining problems of my generation, so I wanted my project to answer a question with real consequences rather than use a textbook example. The problem is not whether CO2 is rising; it is how fast, whether it is accelerating, and what to expect next, all with proper statistical uncertainty. My four objectives follow from that.}
+\end{frame}
+
+% =============================================================================
+\begin{frame}{The data: Mauna Loa monthly \co}
 \begin{columns}[T]
 \column{0.52\textwidth}
 \begin{itemize}
-  \item \co\ is the most important long-lived greenhouse gas.
-  \item Mauna Loa (Hawaii) holds the longest continuous direct record, started by C.~D.~Keeling in 1958.
-  \item Climate targets are framed around how fast \co\ rises and when it crosses thresholds.
-  \item \textbf{Data:} NOAA Global Monitoring Laboratory, monthly mean mole fraction (ppm).
+  \item Mauna Loa Observatory, Hawaii: the longest continuous direct \co\ record, started by C.~D.~Keeling in 1958.
+  \item \textbf{Source:} NOAA Global Monitoring Laboratory.
+  \item \textbf{Variable:} monthly mean mole fraction, in parts per million (ppm).
+  \item Real, public and never analyzed by me before; a large sample for time series modeling.
 \end{itemize}
 \column{0.44\textwidth}
 \begin{block}{The series at a glance}
@@ -115,7 +146,7 @@ Relative increase & \alert{35\%}\\
 \end{tabular*}
 \end{block}
 \end{columns}
-\note{The data come from NOAA. There are 822 consecutive months with no gaps. Concentration rose from about 316 to 428 ppm, an increase of 35 percent.}
+\note{The data come from NOAA's Global Monitoring Laboratory. There are 822 consecutive monthly values from March 1958 to August 2026, with no gaps. Concentration rose from about 316 to 428 ppm, an increase of 35 percent.}
 \end{frame}
 
 % =============================================================================
