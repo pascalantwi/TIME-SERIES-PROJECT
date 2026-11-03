@@ -23,7 +23,9 @@
 \usepackage[dvipsnames]{xcolor}
 \definecolor{accent}{HTML}{1C5CAB}
 \usepackage[colorlinks=true, linkcolor=accent, citecolor=accent, urlcolor=accent]{hyperref}
-\usepackage[round, authoryear]{natbib}
+\usepackage[numbers, square, sort&compress]{natbib}
+\usepackage{doi}                       % clickable DOIs in the reference list
+\urlstyle{same}                         % links in the text font
 \setlength{\bibsep}{0pt}
 \renewcommand{\bibfont}{\footnotesize}
 
@@ -165,7 +167,7 @@ Monthly \co\ at Mauna Loa is a non-stationary series with an accelerating stocha
 \vspace{1pt}
 \noindent{\small\textit{Supplementary material.} Figures, tables and R~4.3.3 code reproducing every number are provided separately.}
 
-\bibliographystyle{plainnat}
+\bibliographystyle{unsrtnat}
 {\small\bibliography{references}}
 
 \end{document}

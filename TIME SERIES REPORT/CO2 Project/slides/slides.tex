@@ -20,6 +20,7 @@
 \usefonttheme{serif}
 \usepackage{microtype}
 \usepackage{amsmath, amssymb, booktabs, graphicx, tabularx, array}
+\urlstyle{same}
 \graphicspath{{figures/slide/}{../figures/slide/}{figures/}{../figures/}}
 
 % ---- Colours (Okabe-Ito, as in the figures) ----------------------------------
@@ -130,7 +131,7 @@
 \column{0.52\textwidth}
 \begin{itemize}
   \item Mauna Loa Observatory, Hawaii: the longest continuous direct \co\ record, started by C.~D.~Keeling in 1958.
-  \item \textbf{Source:} NOAA Global Monitoring Laboratory,\\ {\small\url{https://gml.noaa.gov/ccgg/trends/data.html}}
+  \item \textbf{Source:} NOAA Global Monitoring Laboratory [2],\\ {\small\url{https://gml.noaa.gov/ccgg/trends/data.html}}
   \item \textbf{Variable:} monthly mean mole fraction, in parts per million (ppm).
   \item Real, public and never analyzed by me before; a large sample for time series modeling.
 \end{itemize}
@@ -480,17 +481,17 @@ Thank you\\[6pt]
 \end{frame}
 
 \begin{frame}{References}
-\footnotesize
-\begin{itemize}
-  \item Box, G.\,E.\,P., Jenkins, G.\,M., Reinsel, G.\,C., \& Ljung, G.\,M. (2015). \emph{Time Series Analysis: Forecasting and Control} (5th ed.). Wiley.
-  \item Brockwell, P.\,J., \& Davis, R.\,A. (2016). \emph{Introduction to Time Series and Forecasting} (3rd ed.). Springer.
-  \item Dickey, D.\,A., \& Fuller, W.\,A. (1979). Distribution of the estimators for autoregressive time series with a unit root. \emph{JASA}, 74, 427--431.
-  \item Keeling, C.\,D. (1960). The concentration and isotopic abundances of carbon dioxide in the atmosphere. \emph{Tellus}, 12, 200--203.
-  \item Lan, X., \& Keeling, R.\,F. (2026). Trends in atmospheric carbon dioxide: Mauna Loa monthly mean data. NOAA Global Monitoring Laboratory.
-  \item Ljung, G.\,M., \& Box, G.\,E.\,P. (1978). On a measure of lack of fit in time series models. \emph{Biometrika}, 65, 297--303.
-  \item Schwarz, G. (1978). Estimating the dimension of a model. \emph{Annals of Statistics}, 6, 461--464.
-  \item Winters, P.\,R. (1960). Forecasting sales by exponentially weighted moving averages. \emph{Management Science}, 6, 324--342.
-\end{itemize}
+\scriptsize
+\begin{enumerate}[{[}1{]}]\setlength{\itemsep}{1pt}
+  \item C.\,D. Keeling (1960). The concentration and isotopic abundances of carbon dioxide in the atmosphere. \emph{Tellus}, 12(2), 200--203. \href{https://doi.org/10.1111/j.2153-3490.1960.tb01300.x}{doi:10.1111/j.2153-3490.1960.tb01300.x}
+  \item X.~Lan \& R.\,F. Keeling (2026). Trends in atmospheric carbon dioxide: Mauna Loa monthly mean data. NOAA Global Monitoring Laboratory. \url{https://gml.noaa.gov/ccgg/trends/data.html}
+  \item P.\,J. Brockwell \& R.\,A. Davis (2016). \emph{Introduction to Time Series and Forecasting} (3rd ed.). Springer. \href{https://doi.org/10.1007/978-3-319-29854-2}{doi:10.1007/978-3-319-29854-2}
+  \item D.\,A. Dickey \& W.\,A. Fuller (1979). Distribution of the estimators for autoregressive time series with a unit root. \emph{JASA}, 74(366), 427--431. \href{https://doi.org/10.1080/01621459.1979.10482531}{doi:10.1080/01621459.1979.10482531}
+  \item G.\,E.\,P. Box, G.\,M. Jenkins, G.\,C. Reinsel \& G.\,M. Ljung (2015). \emph{Time Series Analysis: Forecasting and Control} (5th ed.). Wiley. \href{https://search.worldcat.org/title/908107438}{ISBN 978-1-118-67502-1}
+  \item G.\,M. Ljung \& G.\,E.\,P. Box (1978). On a measure of lack of fit in time series models. \emph{Biometrika}, 65(2), 297--303. \href{https://doi.org/10.1093/biomet/65.2.297}{doi:10.1093/biomet/65.2.297}
+  \item G.~Schwarz (1978). Estimating the dimension of a model. \emph{Annals of Statistics}, 6(2), 461--464. \href{https://doi.org/10.1214/aos/1176344136}{doi:10.1214/aos/1176344136}
+  \item P.\,R. Winters (1960). Forecasting sales by exponentially weighted moving averages. \emph{Management Science}, 6(3), 324--342. \href{https://doi.org/10.1287/mnsc.6.3.324}{doi:10.1287/mnsc.6.3.324}
+\end{enumerate}
 \end{frame}
 
 \end{document}
