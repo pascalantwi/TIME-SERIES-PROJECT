@@ -10,9 +10,10 @@ STA6938 Time Series. Data: NOAA Global Monitoring Laboratory, 822 monthly means,
 
 | Path | What it is |
 |---|---|
-| `report/main.pdf` | **The report**: pages 1–5 are text, values and interpretation only; pages 6–21 are the Appendix (15 figures, 17 tables). Every "Figure n" / "Table n" in the text is a clickable link to the appendix, every [n] links to the reference list, and each reference links online |
-| `report/main.tex`, `report/appendix.tex`, `report/references.bib` | LaTeX source of the report and its appendix |
-| `report/make_appendix_tables.py`, `report/tables/` | Typesets the analysis tables for the appendix (run after `R/co2_analysis.R`) |
+| `report/main.pdf` | **The report** (5 pages; no figures or tables inside). Every "Figure n" / "Table n" in the text is a link that opens the captioned figure or table online; every [n] links to the reference list, and each reference links online |
+| `linked_results/` | The 15 figures and 17 tables the report links to (`Figure_NN.png`, `Table_NN.png`) and `Supplement_Figures_and_Tables.pdf` with all of them |
+| `report/main.tex`, `report/links.tex`, `report/references.bib` | LaTeX source of the report and its links |
+| `report/make_appendix_tables.py`, `report/make_linked_results.py`, `report/appendix.tex` | Rebuild the linked figure/table pages (captions and numbering live in `appendix.tex`) |
 | `CO2_Report_LaTeX.zip` | The LaTeX report as a zip, ready to upload to Overleaf |
 | `slides/slides.pdf`, `slides/notes.pdf` | **The presentation** (17 slides + 4 backup, 16:9, about 15 minutes) and speaker notes |
 | `CO2_Slides_LaTeX.zip` | The Beamer presentation as a zip (slides, speaker notes, slide-sized figures), ready for Overleaf |
