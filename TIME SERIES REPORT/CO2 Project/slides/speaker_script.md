@@ -32,7 +32,7 @@ Pascal Antwi, STA6938 Time Series. About 15 minutes; timing cues in brackets.
 
 ## Slide 8: Achieving stationarity
 
-[5:00 - 6:00] The sample ACF confirms the non-stationarity. The shaded band is the 95 percent confidence interval, plus or minus 1.96 over root n, about 0.068. For the original series every autocorrelation lies far outside this band, and it decays extremely slowly from 0.996. After a first difference, the autocorrelations at the seasonal lags 12, 24 and 36 remain around 0.9, which shows that a seasonal difference is also needed. After the seasonal difference alone, the ACF still decays slowly, so a regular difference is needed as well. The Augmented Dickey-Fuller test agrees: for the seasonally adjusted series the unit-root hypothesis cannot be rejected, whereas after both differences it is rejected decisively. The stationary series used for modeling is therefore W sub t, the regular and seasonal difference of the data.
+[5:00 - 6:00] The sample ACF confirms the non-stationarity. For the original series it decays extremely slowly, from 0.996, and every autocorrelation stays far outside the shaded 95 percent confidence band of plus or minus 0.068, the classic signature of a unit root. After a first difference, the autocorrelations at the seasonal lags 12, 24 and 36 remain around 0.9, which shows that a seasonal difference is also needed. After the seasonal difference alone, the ACF still decays slowly, so a regular difference is needed as well. The Augmented Dickey-Fuller test agrees: for the seasonally adjusted series the unit-root hypothesis cannot be rejected, whereas after both differences it is rejected decisively. The stationary series used for modeling is therefore W sub t, the regular and seasonal difference of the data.
 
 ## Slide 9: Estimation versus differencing
 
@@ -40,7 +40,7 @@ Pascal Antwi, STA6938 Time Series. About 15 minutes; timing cues in brackets.
 
 ## Slide 10: Identification from the ACF and PACF of W_t
 
-[6:45 - 7:45] The Ljung-Box test shows that the differenced series is not white noise, so its dependence must be modeled. Significance is judged against the shaded 95 percent confidence band of plus or minus 0.069; spikes outside it are shown in orange. The sample ACF lies clearly outside the band only at lags 1 and 12, together with the satellite lag 11, and then cuts off. The sample PACF lies outside the band at lags 1 to 3 and again at the seasonal lags 12, 24 and 36, decaying gradually, so it tails off. An ACF that cuts off together with a PACF that tails off is the signature of moving-average behavior, here at both the non-seasonal and the seasonal level. This identifies the multiplicative seasonal ARIMA model with one regular and one seasonal moving-average term, shown in the box.
+[6:45 - 7:45] The Ljung-Box test shows that the differenced series is not white noise, so its dependence must be modeled. I identify the orders from the overall pattern of the two plots, using the shaded 95 percent confidence band of plus or minus 0.069 as a guide to individual lags, and the Ljung-Box test for joint significance. The ACF is dominated by two large spikes, at lag 1 and the seasonal lag 12, and then drops to near zero, so it cuts off. The two borderline values at lags 14 and 23 are isolated, and about two or three such values are expected by chance among 48 lags, so I do not treat them as structure. The PACF instead decays gradually, both over lags 1 to 3 and across the seasonal lags 12, 24 and 36, so it tails off. An ACF that cuts off together with a PACF that tails off is the signature of moving-average behavior, here at both the non-seasonal and the seasonal level. This identifies the multiplicative seasonal ARIMA model with one regular and one seasonal moving-average term, shown in the box.
 
 ## Slide 11: Model selection: AIC and SBC
 
@@ -56,7 +56,7 @@ Pascal Antwi, STA6938 Time Series. About 15 minutes; timing cues in brackets.
 
 ## Slide 14: Model adequacy: residual diagnostics
 
-[10:30 - 11:20] Model adequacy was checked on the residuals. In the residual ACF, only lag 3 falls just outside the 95 percent confidence band, which is about what chance alone would produce over 36 lags. The residuals also pass the Ljung-Box test at lags 6, 12, 18 and 24, so they are consistent with white noise, and the Ljung-Box test on the squared residuals shows no change in variance over time. Normality is only marginally rejected by the Shapiro-Wilk test, at a p-value of 0.048. This is driven by five months with standardized residuals beyond plus or minus three, including April 2016, during a strong El Nino.
+[10:30 - 11:20] Model adequacy was checked on the residuals. The residual ACF shows no systematic pattern; only lag 3 falls just outside the 95 percent confidence band, fewer than the number expected by chance over 36 lags. The residuals also pass the Ljung-Box test at lags 6, 12, 18 and 24, so they are consistent with white noise, and the Ljung-Box test on the squared residuals shows no change in variance over time. Normality is only marginally rejected by the Shapiro-Wilk test, at a p-value of 0.048. This is driven by five months with standardized residuals beyond plus or minus three, including April 2016, during a strong El Nino.
 
 ## Slide 15: Remedial measures
 
