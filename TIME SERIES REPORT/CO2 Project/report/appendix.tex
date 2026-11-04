@@ -1,0 +1,137 @@
+% =============================================================================
+%  Appendix: figures and tables supporting the report.
+%  Every "Figure n" and "Table n" in the text links here.
+%  Figures come from ../figures (R/co2_analysis.R); tables from tables/
+%  (make_appendix_tables.py, which typesets ../tables).
+% =============================================================================
+\clearpage
+\appendix
+\renewcommand{\thesection}{\Alph{section}}
+\setcounter{figure}{0}
+\setcounter{table}{0}
+
+\section{Figures}
+\noindent{\small The figures are numbered in the order in which the text refers to them. Click a figure or table number in the text to jump here.}
+
+% ---- Section 2: description -------------------------------------------------------
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{fig01_co2_series.pdf}
+\caption{Monthly mean atmospheric \co\ at Mauna Loa, March 1958 to August 2026, with the $2\times12$ moving-average trend.}
+\label{fig:series}
+\end{figure}
+
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{fig06_annual_growth_lag12_difference.pdf}
+\caption{Twelve-month change $\nabla_{12}X_t$ (ppm per year) with decade averages: growth tripled from the 1960s to the 2020s.}
+\label{fig:growth}
+\end{figure}
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.92\textwidth]{fig02_classical_decomposition.pdf}
+\caption{Classical additive decomposition of $X_t$ into trend, seasonal and remainder components.}
+\label{fig:decomp}
+\end{figure}
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.85\textwidth]{fig03_seasonal_indices.pdf}
+\caption{Monthly seasonal indices from the additive decomposition: peak in May ($+3.04$\ppm), trough in October ($-3.25$\ppm).}
+\label{fig:seasidx}
+\end{figure}
+
+% ---- Section 3: stationarity ------------------------------------------------------
+\begin{figure}[H]\centering
+\includegraphics[width=0.85\textwidth]{fig04_seasonal_amplitude_by_year.pdf}
+\caption{Within-year range of the detrended series by year, with a linear trend. The amplitude does not grow in proportion to the level, so no transformation is needed.}
+\label{fig:amplitude}
+\end{figure}
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.85\textwidth]{fig05_acf_original_and_differences.pdf}
+\caption{Sample ACF of (a) $X_t$, (b) $\nabla X_t$ and (c) $\nabla_{12}X_t$. Seasonal lags are highlighted; dashed lines are the $\pm1.96/\sqrt{n}$ bounds.}
+\label{fig:acf-diff}
+\end{figure}
+
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{fig07_regular_and_seasonal_difference.pdf}
+\caption{The stationary series $W_t=\nabla\nabla_{12}X_t$ used for model identification.}
+\label{fig:w}
+\end{figure}
+
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{fig09_regression_residuals.pdf}
+\caption{Regression on a quadratic trend and monthly dummies: (a) residuals and (b) their sample ACF. The residuals persist for years.}
+\label{fig:reg}
+\end{figure}
+
+% ---- Section 4: model building ----------------------------------------------------
+\begin{figure}[H]\centering
+\includegraphics[width=0.92\textwidth]{fig08_acf_pacf_differenced.pdf}
+\caption{Sample ACF (a) and PACF (b) of $W_t$. The ACF cuts off after lags 1 and 12; the PACF tails off.}
+\label{fig:acf-w}
+\end{figure}
+
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{fig14_residual_acf_by_model_family.pdf}
+\caption{Residual ACF of the best model in each of the four families. Only the seasonal ARIMA (d) has no spikes at the seasonal lags.}
+\label{fig:families}
+\end{figure}
+
+% ---- Section 6: adequacy ----------------------------------------------------------
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{fig10_final_model_residual_diagnostics.pdf}
+\caption{Residual diagnostics for ARIMA$(0,1,1)\times(0,1,1)_{12}$: (a) standardized residuals with the five months beyond $\pm3$ labeled, (b) residual ACF, (c) histogram with the $N(0,1)$ density, (d) normal Q--Q plot.}
+\label{fig:diag}
+\end{figure}
+
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{fig11_ljung_box_pvalues.pdf}
+\caption{Ljung--Box $p$-values by lag for the final and the alternative model; the dashed line is $p=0.05$.}
+\label{fig:lb}
+\end{figure}
+
+% ---- Section 7: forecasting -------------------------------------------------------
+\begin{figure}[H]\centering
+\includegraphics[width=0.95\textwidth]{fig15_rolling_origin_accuracy.pdf}
+\caption{Rolling-origin evaluation: RMSE of 12-month-ahead forecasts from 23 origins (276 forecasts per method), with 95\% interval coverage in parentheses.}
+\label{fig:rolling}
+\end{figure}
+
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{fig12_holdout_forecast_comparison.pdf}
+\caption{Hold-out forecasts for September 2023 to August 2026 from models fitted through August 2023, with the ARIMA 95\% prediction interval.}
+\label{fig:holdout}
+\end{figure}
+
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{fig13_forecast_to_2030.pdf}
+\caption{Forecast of monthly \co\ to December 2030 from ARIMA$(0,1,1)\times(0,1,1)_{12}$, with 80\% and 95\% prediction intervals.}
+\label{fig:forecast}
+\end{figure}
+
+% =============================================================================
+\clearpage
+\section{Tables}
+
+\newcommand{\apptable}[3]{%
+  \begin{table}[H]\centering\small
+  \caption{#2}\label{#3}
+  \begin{adjustbox}{max width=\textwidth}\input{tables/#1}\end{adjustbox}
+  \end{table}}
+
+\apptable{tab01_descriptive_statistics}{Descriptive statistics of the monthly \co\ series.}{tab:desc}
+\apptable{tab02_growth_by_decade}{Mean level, mean annual increase and seasonal amplitude by decade.}{tab:decade}
+\apptable{tab03_seasonal_indices}{Monthly seasonal indices from the additive decomposition (ppm).}{tab:seasidx}
+\apptable{tab04_adf_tests}{Augmented Dickey--Fuller tests ($H_0$: unit root). Seasonally adjusted series at lags 0--2; reject $H_0$ when $\tau$ is below the critical value.}{tab:adf}
+\apptable{tab05_regression_trend_seasonal}{Regression of $X_t$ on a quadratic trend and monthly dummies (estimation approach), with $R^2$ and the Durbin--Watson statistic.}{tab:reg}
+\apptable{tab06_white_noise_differenced}{Ljung--Box tests for $W_t=\nabla\nabla_{12}X_t$ ($H_0$: white noise).}{tab:wn}
+\apptable{tab07_candidate_models}{Candidate seasonal ARIMA models estimated by maximum likelihood, sorted by SBC.}{tab:cand}
+\apptable{tab16_model_families}{Best model in each of the four families ($k$ = number of ARMA parameters): residual checks and 36-month hold-out accuracy.}{tab:families}
+\apptable{tab15_regression_autocorrelated_errors}{Regression with ARMA errors: the AR coefficients sum to nearly 1 and the residuals fail the Ljung--Box test.}{tab:regarma}
+\apptable{tab08_parameter_estimates}{Parameter estimates, $z$-tests and 95\% confidence intervals (maximum likelihood and conditional least squares).}{tab:est}
+\apptable{tab09_residual_diagnostics}{Residual diagnostics for the final model, the final model with the five outlying months set to missing, and the alternative ARIMA$(1,1,1)\times(0,1,1)_{12}$.}{tab:diag}
+\apptable{tab10_outlying_months}{Months with standardized residuals beyond $\pm3$.}{tab:outliers}
+\apptable{tab11_sensitivity_estimates}{Sensitivity of the estimates to the five outlying months.}{tab:sens}
+\apptable{tab17_rolling_origin_accuracy}{Rolling-origin accuracy of 12-month-ahead forecasts (23 origins, August 2000--2022).}{tab:rolling}
+\apptable{tab12_holt_winters_parameters}{Holt--Winters smoothing parameters, full sample.}{tab:hw}
+\apptable{tab13_holdout_accuracy}{Hold-out forecast accuracy, September 2023 to August 2026.}{tab:holdout}
+\apptable{tab14_forecasts_selected}{Forecasts of monthly \co\ (ppm) with 80\% and 95\% prediction intervals and the Holt--Winters forecast.}{tab:fc}

@@ -10,8 +10,9 @@ STA6938 Time Series. Data: NOAA Global Monitoring Laboratory, 822 monthly means,
 
 | Path | What it is |
 |---|---|
-| `report/main.pdf` | **The report** (5 pages; text, values and interpretation only, with no tables or figures, as the professor requires) |
-| `report/main.tex`, `report/references.bib` | LaTeX source of the report |
+| `report/main.pdf` | **The report**: pages 1–5 are text, values and interpretation only; pages 6–21 are the Appendix (15 figures, 17 tables). Every "Figure n" / "Table n" in the text is a clickable link to the appendix, every [n] links to the reference list, and each reference links online |
+| `report/main.tex`, `report/appendix.tex`, `report/references.bib` | LaTeX source of the report and its appendix |
+| `report/make_appendix_tables.py`, `report/tables/` | Typesets the analysis tables for the appendix (run after `R/co2_analysis.R`) |
 | `CO2_Report_LaTeX.zip` | The LaTeX report as a zip, ready to upload to Overleaf |
 | `slides/slides.pdf`, `slides/notes.pdf` | **The presentation** (17 slides + 4 backup, 16:9, about 15 minutes) and speaker notes |
 | `CO2_Slides_LaTeX.zip` | The Beamer presentation as a zip (slides, speaker notes, slide-sized figures), ready for Overleaf |
