@@ -78,20 +78,29 @@ update_geom_defaults("text", list(family = font_family, colour = "black"))
 update_geom_defaults("label", list(family = font_family, colour = "black"))
 update_geom_defaults(ggrepel::GeomTextRepel, list(family = font_family, colour = "black"))
 
-acf_panel <- function(x, title, lag.max = 48, partial = FALSE, seasonal = TRUE) {
+# ACF/PACF with the 95% confidence band +-1.96/sqrt(n) shaded and labelled; spikes outside
+# the band (significant at 5%) in vermillion, spikes inside it in grey.
+sig_levels <- c("Outside 95% CI (significant)", "Inside 95% CI")
+sig_colours <- setNames(c(c_orange, "grey55"), sig_levels)
+acf_panel <- function(x, title, lag.max = 48, partial = FALSE, seasonal = TRUE, ci_label = TRUE) {
   a <- if (partial) pacf(x, lag.max = lag.max, plot = FALSE) else acf(x, lag.max = lag.max, plot = FALSE)
   df <- data.frame(lag = round(as.numeric(a$lag) * frequency(x)), r = as.numeric(a$acf))
   df <- df[df$lag > 0, ]
-  df$seas <- seasonal & df$lag %% 12 == 0
   b <- 1.96 / sqrt(length(x))
-  ggplot(df, aes(lag, r)) +
+  df$sig <- factor(ifelse(abs(df$r) > b, sig_levels[1], sig_levels[2]), levels = sig_levels)
+  p <- ggplot(df, aes(lag, r)) +
+    annotate("rect", xmin = -Inf, xmax = Inf, ymin = -b, ymax = b, fill = c_blue, alpha = 0.13) +
+    geom_hline(yintercept = c(-b, b), colour = c_blue, linetype = "dashed", linewidth = 0.45) +
     geom_hline(yintercept = 0, colour = ink2, linewidth = 0.3) +
-    geom_hline(yintercept = c(-b, b), colour = c_ref, linetype = "dashed", linewidth = 0.45) +
-    geom_segment(aes(xend = lag, yend = 0, colour = seas), linewidth = 0.7, show.legend = FALSE) +
-    geom_point(aes(colour = seas), size = 1.2, show.legend = FALSE) +
-    scale_colour_manual(values = c(`FALSE` = c_blue, `TRUE` = c_red)) +
+    geom_segment(aes(xend = lag, yend = 0, colour = sig), linewidth = 0.7) +
+    geom_point(aes(colour = sig), size = 1.2) +
+    scale_colour_manual(values = sig_colours, drop = FALSE, name = NULL) +
     scale_x_continuous(breaks = seq(0, lag.max, 12)) +
     labs(title = title, x = "Lag (months)", y = if (partial) "PACF" else "ACF") + theme_slide()
+  if (ci_label) p <- p + annotate("label", x = lag.max, y = b, label = sprintf("95%% CI: \u00b1%.3f", b),
+                                  hjust = 1, vjust = -0.25, size = 3.3, colour = c_blue, fill = "white",
+                                  label.size = 0, family = font_family)
+  p
 }
 
 lb <- function(x, lags = c(6, 12, 18, 24), fitdf = 0)
@@ -520,7 +529,8 @@ save_fig(p, "fig04_seasonal_amplitude_by_year")
 
 p <- (acf_panel(x, "(a) Original series", 48) + coord_cartesian(ylim = c(-0.2, 1))) /
      (acf_panel(d1, "(b) First difference", 48) + coord_cartesian(ylim = c(-1, 1))) /
-     (acf_panel(d12, "(c) Lag-12 (seasonal) difference", 48) + coord_cartesian(ylim = c(-0.2, 1)))
+     (acf_panel(d12, "(c) Lag-12 (seasonal) difference", 48) + coord_cartesian(ylim = c(-0.2, 1))) +
+     plot_layout(guides = "collect") & theme(legend.position = "top", legend.justification = "left")
 save_fig(p, "fig05_acf_original_and_differences", h = 8)
 
 gdf <- data.frame(Date = dates[-(1:12)], g = as.numeric(d12), dec = dec_lab)
@@ -545,7 +555,8 @@ p <- ggplot(data.frame(Date = dates[-(1:13)], v = as.numeric(dd)), aes(Date, v))
 save_fig(p, "fig07_regular_and_seasonal_difference")
 
 p <- (acf_panel(dd, "(a) Sample ACF") + coord_cartesian(ylim = c(-0.55, 0.3))) /
-     (acf_panel(dd, "(b) Sample PACF", partial = TRUE) + coord_cartesian(ylim = c(-0.55, 0.3)))
+     (acf_panel(dd, "(b) Sample PACF", partial = TRUE) + coord_cartesian(ylim = c(-0.55, 0.3))) +
+     plot_layout(guides = "collect") & theme(legend.position = "top", legend.justification = "left")
 save_fig(p, "fig08_acf_pacf_differenced", h = 6.5)
 
 rdf <- data.frame(Date = dates, r = reg_res)
@@ -555,6 +566,7 @@ p <- (ggplot(rdf, aes(Date, r)) + geom_hline(yintercept = 0, colour = ink2, line
         labs(title = "(a) Regression residuals", x = NULL, y = "ppm") + theme_slide()) |
      (acf_panel(ts(reg_res, frequency = 12), "(b) ACF of residuals", 36, seasonal = FALSE) +
         coord_cartesian(ylim = c(-0.2, 1)))
+p <- p + plot_layout(guides = "collect") & theme(legend.position = "top", legend.justification = "right")
 save_fig(p, "fig09_regression_residuals")
 
 
@@ -576,7 +588,8 @@ p3 <- ggplot(zdf, aes(z)) +
   labs(title = "(c) Histogram vs N(0,1)", x = "Standardized residual", y = "Density") + theme_slide()
 p4 <- ggplot(zdf, aes(sample = z)) + stat_qq(colour = c_blue, size = 0.9) + stat_qq_line(colour = c_orange, linewidth = 0.8) +
   labs(title = "(d) Normal Q-Q plot", x = "Normal quantiles", y = "Sample quantiles") + theme_slide()
-save_fig((p1 | p2) / (p3 | p4), "fig10_final_model_residual_diagnostics", h = 6.5)
+save_fig((p1 | p2) / (p3 | p4) + plot_layout(guides = "collect") & theme(legend.position = "top", legend.justification = "right"),
+         "fig10_final_model_residual_diagnostics", h = 6.5)
 
 p <- ggplot(lb_lags, aes(lag, p, colour = model, shape = model)) +
   geom_hline(yintercept = 0.05, colour = c_ref, linetype = "dashed", linewidth = 0.5) +
@@ -658,16 +671,19 @@ fam_acf <- do.call(rbind, lapply(seq_along(fam_list), function(i) {
   short <- c(fam_list[[1]]$model, fam_list[[2]]$model,
              sprintf("Regression, ARMA(%d,%d) errors", fam_reg$p, fam_reg$q), paste("Seasonal", fam_list[[4]]$model))
   data.frame(panel = paste0("(", letters[i], ") ", short[i]),
-             lag = 1:36, r = a, seas = (1:36) %% 12 == 0, b = 1.96 / sqrt(length(e)))
+             lag = 1:36, r = a, b = 1.96 / sqrt(length(e)),
+             sig = factor(ifelse(abs(a) > 1.96 / sqrt(length(e)), sig_levels[1], sig_levels[2]), levels = sig_levels))
 }))
 fam_acf$panel <- factor(fam_acf$panel, levels = unique(fam_acf$panel))
+band <- unique(fam_acf[, c("panel", "b")])
 p <- ggplot(fam_acf, aes(lag, r)) +
+  geom_rect(data = band, aes(xmin = -Inf, xmax = Inf, ymin = -b, ymax = b), inherit.aes = FALSE, fill = c_blue, alpha = 0.13) +
+  geom_hline(data = band, aes(yintercept = b), colour = c_blue, linetype = "dashed", linewidth = 0.45) +
+  geom_hline(data = band, aes(yintercept = -b), colour = c_blue, linetype = "dashed", linewidth = 0.45) +
   geom_hline(yintercept = 0, colour = ink2, linewidth = 0.3) +
-  geom_hline(aes(yintercept = b), colour = c_ref, linetype = "dashed", linewidth = 0.45) +
-  geom_hline(aes(yintercept = -b), colour = c_ref, linetype = "dashed", linewidth = 0.45) +
-  geom_segment(aes(xend = lag, yend = 0, colour = seas), linewidth = 0.7, show.legend = FALSE) +
-  geom_point(aes(colour = seas), size = 1.1, show.legend = FALSE) +
-  scale_colour_manual(values = c(`FALSE` = c_blue, `TRUE` = c_red)) +
+  geom_segment(aes(xend = lag, yend = 0, colour = sig), linewidth = 0.7) +
+  geom_point(aes(colour = sig), size = 1.1) +
+  scale_colour_manual(values = sig_colours, drop = FALSE, name = NULL) +
   scale_x_continuous(breaks = seq(0, 36, 12)) +
   facet_wrap(~panel, ncol = 2) +
   labs(x = "Lag (months)", y = "Residual ACF") + theme_slide(12) +
